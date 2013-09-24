@@ -70,14 +70,15 @@ Objectives
 Milestones
 ----------
 
-* CLI-interface for creating ical calendar events (scheduled for version 0.01)
-* CLI-interface for creating ical calendar events (scheduled for version 0.03)
+* CLI-interface for creating ical calendar events (working as of version 0.01)
+* Push calendar item into CalDAV server
 * Config file with CalDAV connection details
 * CalDAV login
-* Push calendar item into CalDAV server
+* CLI-interface for creating ical todo events
 * Push todo item into CalDAV server
 
 Status
 ------
 
 2013-09-15: Made a repository at github and wrote up this README.
+2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters

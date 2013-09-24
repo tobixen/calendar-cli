@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 import dateutil.parser
 from icalendar import Calendar,Event
 
-__version__ = "0.003"
+__version__ = "0.01"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
