@@ -29,7 +29,7 @@ The config file may have a section for each CalDAV server ... (todo, think more 
 (only long options will be available in version 0.1; don't want to pollute the short option space yet)
 
 * --interactive, -i: stop and query the user rather often
-* --caldav-host, --caldav-user, --caldav-pass: how to connect to the CalDAV server
+* --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server
 * --caldav-calendar: which calendar to access
 * --config: use a specific configuration file (default: $HOME/.calendar-cli.conf)
 * --config-section: use a specific section from the config file (i.e. to select a different 
@@ -59,6 +59,12 @@ All of those would eventually be supported in future versions if it's not too di
 
 Alternatively, endtime or duration can be given through options.
 
+### Examples
+
+Add a calendar item "testevent" at 2013-10-01:
+
+    ./calendar-cli.py --caldav-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/ --caldav-user=tobias --caldav-pass=banana calendar --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ add 2013-10-01 testevent
+
 Objectives
 ----------
 
@@ -71,9 +77,12 @@ Milestones
 ----------
 
 * CLI-interface for creating ical calendar events (working as of version 0.01)
-* Push calendar item into CalDAV server
+* CalDAV login (working as of version 0.02)
+* Push calendar item into CalDAV server (working as of version 0.02, but both an URL for the caldav server and an URL for the actual calendar has to be given)
+* Replace calendar-URL with calendar-path
 * Config file with CalDAV connection details
-* CalDAV login
+* Find default calendar-path
+* Show agenda
 * CLI-interface for creating ical todo events
 * Push todo item into CalDAV server
 
@@ -82,3 +91,4 @@ Status
 
 2013-09-15: Made a repository at github and wrote up this README.
 2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
+2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
