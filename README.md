@@ -67,7 +67,8 @@ Configuration file
 
 The file may look like this:
 
-```{ "default": 
+```json
+{ "default": 
   { "caldav_url": "http://foo.bar.example.com/ical/", 
     "caldav-user": "luser",
     "caldav-pass": "insecure"
