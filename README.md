@@ -20,19 +20,20 @@ Synopsis
 
 cli.py should be symlinked to the various commands.
 
-A configuration file (ini-format?) can contain defaults for all the global options.
-
-The config file may have a section for each CalDAV server ... (todo, think more about this)
-
 ### Global options
 
-(only long options will be available in version 0.1; don't want to pollute the short option space yet)
+Only long options will be available up until version 0.10; I don't
+want to pollute the short option space before the CLI is reasonably
+well-defined.
+
+Always consult --help for up-to-date and complete listings of options.
+The list below will only contain the most important options and may
+not be up-to-date and may contain features not implemented yet.
 
 * --interactive, -i: stop and query the user rather often
-* --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server
-* --caldav-calendar: which calendar to access
-* --config: use a specific configuration file (default: $HOME/.calendar-cli.conf)
-* --config-section: use a specific section from the config file (i.e. to select a different 
+* --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server.  Fits better into a configuration file.
+* --config-file: use a specific configuration file (default: $HOME/.calendar-cli.conf)
+* --config-section: use a specific section from the config file (i.e. to select a different caldav-server to connect to)
 * --icalendar: instead of connecting to a CalDAV server, write an icalendar file to stdout
 
 ### Commands
@@ -46,7 +47,7 @@ The config file may have a section for each CalDAV server ... (todo, think more 
 
 Supported in v0.01:
 
-* dateutil.parser.parse()
+* anything recognized by dateutil.parser.parse()
 
 All of those would eventually be supported in future versions if it's not too difficult to achieve:
 
@@ -59,11 +60,31 @@ All of those would eventually be supported in future versions if it's not too di
 
 Alternatively, endtime or duration can be given through options.
 
+Configuration file
+------------------
+
+(I considered a configuration file in .ini-format, having a "default"-section with default values for any global options, and optionally other sections for different CalDAV-servers.  Asking a bit around for recommendations on config file format as well as location, I was told that the .ini-format is not a standard, I'd be better off using a standard like yaml, json or xml.  Personally I like json a bit better than yaml - after consulting with a friend I ended up with json.  Location ... I think it's "cleaner" to keep it in ~/.config/, and I'd like any calendar application to be able to access the file, hence it got ~/.config/calendar.conf rather than ~/.calendar-cli.conf)
+
+The file may look like this:
+
+  { "default": 
+    { "caldav_url": "http://foo.bar.example.com/ical/", 
+      "caldav-user": "luser",
+      "caldav-pass": "insecure"
+    }
+  }
+
+Optionally, in addition (or even instead) of "default", other "sections" can be created and selected through the --config-section option.  The rationale is to allow configuration for multiple CalDAV-servers to remain in the same configuration file.  Later versions will eventually be capable of copying events, or putting events into several calendars.
+
+Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`
+
 ### Examples
 
 Add a calendar item "testevent" at 2013-10-01:
 
-    ./calendar-cli.py --caldav-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/ --caldav-user=tobias --caldav-pass=banana calendar --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ add 2013-10-01 testevent
+    ./calendar-cli.py calendar --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ add 2013-10-01 testevent
+
+(assumes that `caldav-url`, `calldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
 
 Objectives
 ----------
@@ -79,8 +100,8 @@ Milestones
 * CLI-interface for creating ical calendar events (working as of version 0.01)
 * CalDAV login (working as of version 0.02)
 * Push calendar item into CalDAV server (working as of version 0.02, but both an URL for the caldav server and an URL for the actual calendar has to be given)
+* Config file with CalDAV connection details (working as of version 0.03)
 * Replace calendar-URL with calendar-path
-* Config file with CalDAV connection details
 * Find default calendar-path
 * Show agenda
 * CLI-interface for creating ical todo events
