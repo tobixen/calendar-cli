@@ -67,12 +67,12 @@ Configuration file
 
 The file may look like this:
 
-  { "default": 
-    { "caldav_url": "http://foo.bar.example.com/ical/", 
-      "caldav-user": "luser",
-      "caldav-pass": "insecure"
-    }
+```{ "default": 
+  { "caldav_url": "http://foo.bar.example.com/ical/", 
+    "caldav-user": "luser",
+    "caldav-pass": "insecure"
   }
+}```
 
 Optionally, in addition (or even instead) of "default", other "sections" can be created and selected through the --config-section option.  The rationale is to allow configuration for multiple CalDAV-servers to remain in the same configuration file.  Later versions will eventually be capable of copying events, or putting events into several calendars.
 
