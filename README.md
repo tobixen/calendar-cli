@@ -69,7 +69,7 @@ The file may look like this:
 
 ```json
 { "default": 
-  { "caldav_url": "http://foo.bar.example.com/ical/", 
+  { "caldav_url": "http://foo.bar.example.com/caldav/", 
     "caldav-user": "luser",
     "caldav-pass": "insecure"
   }
