@@ -37,10 +37,6 @@ def caldav_connect(args):
 
 
 def calendar_add(caldav_conn, args):
-    if (not args.calendar_url):
-        ## args.calendar_url must be given ... :/
-        niy()
-
     cal = Calendar()
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
@@ -62,8 +58,24 @@ def calendar_add(caldav_conn, args):
 
     if args.icalendar:
         print(cal.to_ical())
-    elif args.caldav_url:
-        caldav_conn.session.writeData(URL(args.calendar_url+str(uid)+'.ics'), cal.to_ical(), 'text/calendar', method='PUT')
+        return
+
+    if args.calendar_url:
+        splits = urlparse.urlsplit(args.calendar_url)
+        if splits.path.startswith('/') or splits.scheme:
+            ## assume fully qualified URL or absolute path
+            calendar = args.calendar_url
+        else:
+            ## assume relative path
+            calendar = args.caldav_url + args.calendar_url
+    else:
+        ## Find default calendar
+        url = caldav_conn.getPrincipal().listCalendars()[0].path
+
+    ## Unique file name
+    url = URL(calendar + str(uid) + '.ics')
+    caldav_conn.session.writeData(url, cal.to_ical(), 'text/calendar', method='PUT')
+
 
 def main():
     ## This boilerplate pattern is from
@@ -121,7 +133,7 @@ def main():
     subparsers = parser.add_subparsers(title='command')
 
     calendar_parser = subparsers.add_parser('calendar')
-    calendar_parser.add_argument("--calendar-url", help="URL for calendar to be used")
+    calendar_parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL)")
     calendar_subparsers = calendar_parser.add_subparsers(title='subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
