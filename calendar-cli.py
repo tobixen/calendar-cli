@@ -55,14 +55,15 @@ def calendar_add(caldav_conn, args):
     ## not really correct, and it breaks i.e. with google calendar
     #event.add('dtstamp', datetime.now())
     ## maybe we should generate some uid?
-    #event.add('uid', uid)
+    uid = uuid.uuid1()
+    event.add('uid', str(uid))
     event.add('summary', ' '.join(args.description))
     cal.add_component(event)
 
     if args.icalendar:
         print(cal.to_ical())
     elif args.caldav_url:
-        caldav_conn.session.writeData(URL(args.calendar_url+str(uuid.uuid1())+'.ical'), cal.to_ical(), 'text/calendar', method='PUT')
+        caldav_conn.session.writeData(URL(args.calendar_url+str(uid)+'.ics'), cal.to_ical(), 'text/calendar', method='PUT')
 
 def main():
     ## This boilerplate pattern is from
@@ -94,8 +95,9 @@ def main():
         logging.info("no config file found")
     except ValueError:
         logging.error("error in config file", exc_info=True)
+        raise
 
-    defaults = config.get('default', {})
+    defaults = config.get(args.config_section, {})
 
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
