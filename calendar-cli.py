@@ -70,9 +70,11 @@ def calendar_add(caldav_conn, args):
             calendar = args.caldav_url + args.calendar_url
     else:
         ## Find default calendar
-        url = caldav_conn.getPrincipal().listCalendars()[0].path
+        calendar = caldav_conn.getPrincipal().listCalendars()[0].path
 
     ## Unique file name
+    if not calendar.endswith('/'):
+        calendar += '/'
     url = URL(calendar + str(uid) + '.ics')
     caldav_conn.session.writeData(url, cal.to_ical(), 'text/calendar', method='PUT')
 
