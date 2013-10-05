@@ -15,7 +15,7 @@ import json
 import os
 import logging
 
-__version__ = "0.03"
+__version__ = "0.04"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
