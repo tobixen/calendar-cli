@@ -27,6 +27,8 @@ __status__ = "Development"
 __product__ = "calendar-cli"
 
 def niy(*args, **kwargs):
+    if 'feature' in kwargs:
+        raise NotImplementedError("This feature is not implemented yet: %(feature)s" % kwargs)
     raise NotImplementedError
 
 def caldav_connect(args):
@@ -34,6 +36,24 @@ def caldav_connect(args):
     splits = urlparse.urlsplit(args.caldav_url)
     ssl = (splits.scheme == "https")
     return CalDAVAccount(splits.netloc, ssl=ssl, user=args.caldav_user, pswd=args.caldav_pass, root=(splits.path or '/'), principal=None, logging=args.debug_logging)
+
+def find_calendar_url(caldav_conn, args):
+    if args.calendar_url:
+        splits = urlparse.urlsplit(args.calendar_url)
+        if splits.path.startswith('/') or splits.scheme:
+            ## assume fully qualified URL or absolute path
+            url = args.calendar_url
+        else:
+            ## assume relative path
+            url = args.caldav_url + args.calendar_url
+    else:
+        ## Find default calendar
+        url = caldav_conn.getPrincipal().listCalendars()[0].path
+
+    ## Unique file name
+    if not url.endswith('/'):
+        url += '/'
+    return url
 
 
 def calendar_add(caldav_conn, args):
@@ -56,28 +76,41 @@ def calendar_add(caldav_conn, args):
     event.add('summary', ' '.join(args.description))
     cal.add_component(event)
 
-    if args.icalendar:
+    if args.icalendar and args.nocaldav:
         print(cal.to_ical())
         return
-
-    if args.calendar_url:
-        splits = urlparse.urlsplit(args.calendar_url)
-        if splits.path.startswith('/') or splits.scheme:
-            ## assume fully qualified URL or absolute path
-            calendar = args.calendar_url
-        else:
-            ## assume relative path
-            calendar = args.caldav_url + args.calendar_url
-    else:
-        ## Find default calendar
-        calendar = caldav_conn.getPrincipal().listCalendars()[0].path
-
-    ## Unique file name
-    if not calendar.endswith('/'):
-        calendar += '/'
-    url = URL(calendar + str(uid) + '.ics')
+    if args.icalendar or args.nocaldav:
+        raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
+        return
+    
+    url = URL(find_calendar_url(caldav_conn, args) + str(uid) + '.ics')
     caldav_conn.session.writeData(url, cal.to_ical(), 'text/calendar', method='PUT')
 
+def calendar_agenda(caldav_conn, args):
+    if args.nocaldav and args.icalendar:
+        niy(feature="Read events from stdin in ical format")
+
+    if args.nocaldav:
+        raise ValueError("Agenda with --nocaldav only makes sense together with --icalendar")
+
+    dtstart = dateutil.parser.parse(args.from_time)
+    if args.to_time:
+        dtend = dateutil.parser.parse(args.to_time)
+    else:
+        dtend = dtstart + timedelta(1,0)
+    ## TODO: time zone
+    ## No need with "expand" - as for now the method below throws away the expanded data :-(  We get a list of URLs, and then we need to do a get on each and one of them ...
+    collection = caldav_conn.session.queryCollection(URL(find_calendar_url(caldav_conn, args)), timerange=True, start=dtstart.strftime("%FT%H%M%S"), end=dtend.strftime("%FT%H%M%S"), expand=False)
+    ret_ical = []
+    for url in collection:
+        ret_ical.append(caldav_conn.session.readData(url))
+    if args.icalendar:
+        for ical in ret_ical:
+            print ical
+    else:
+        import pdb; pdb.set_trace()
+        ret_ical = [Calendar.from_ical(c[0]) for c in ret_ical]
+        niy("parse calendar events and print them in a nice format")
 
 def main():
     ## This boilerplate pattern is from
@@ -122,7 +155,8 @@ def main():
     parser.set_defaults(**defaults)
 
     ## Global options
-    parser.add_argument("--icalendar", help="Do not connect to CalDAV server, but read/write icalendar format from stdin/stdout", action="store_true")
+    parser.add_argument("--nocaldav", help="Do not connect to CalDAV server, but read/write icalendar format from stdin/stdout", action="store_true")
+    parser.add_argument("--icalendar", help="Read/write icalendar format from stdin/stdout", action="store_true")
     parser.add_argument("--timezone", help="Timezone to use")
     parser.add_argument('--language', help="language used", default="EN")
     parser.add_argument("--caldav-url", help="Full URL to the caldav server", metavar="URL")
@@ -143,12 +177,15 @@ def main():
     calendar_add_parser.set_defaults(func=calendar_add)
 
     calendar_agenda_parser = calendar_subparsers.add_parser('agenda')
-    calendar_agenda_parser.set_defaults(func=niy)
+    calendar_agenda_parser.add_argument('from_time', help="Fetch calendar events from this timestamp.  See the documentation for time specifications")
+    calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
+    calendar_agenda_parser.set_defaults(func=calendar_agenda)
+
     todo_parser = subparsers.add_parser('todo')
     todo_parser.set_defaults(func=niy)
     args = parser.parse_args(remaining_argv)
 
-    if not args.icalendar:
+    if not args.nocaldav:
         caldav_conn = caldav_connect(args)
 
     ret = args.func(caldav_conn, args)

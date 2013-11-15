@@ -103,8 +103,8 @@ Milestones
 * CalDAV login (working as of version 0.02)
 * Push calendar item into CalDAV server (working as of version 0.02, but both an URL for the caldav server and an URL for the actual calendar has to be given)
 * Config file with CalDAV connection details (working as of version 0.03)
-* Replace calendar-URL with calendar-path
-* Find default calendar-path
+* Replace calendar-URL with calendar-path (working as of version 0.04)
+* Find default calendar-path (working as of version 0.04)
 * Show agenda
 * CLI-interface for creating ical todo events
 * Push todo item into CalDAV server
