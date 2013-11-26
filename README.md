@@ -117,3 +117,5 @@ Status
 2013-09-15: Made a repository at github and wrote up this README.
 2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
 2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
+2013-10-02: version 0.03 - support for configuration file
+2013-10-05: version 0.04 - no need to specify URL for the default calendar
