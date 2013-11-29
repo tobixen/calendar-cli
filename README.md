@@ -86,9 +86,10 @@ Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calend
 
 Add a calendar item "testevent" at 2013-10-01:
 
-    ./calendar-cli.py calendar --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ add 2013-10-01 testevent
+    ./calendar-cli.py calendar --calendar-url=tobias/calendar/ add 2013-10-01 testevent
 
 (assumes that `caldav-url`, `calldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
+
 
 Objectives
 ----------
@@ -105,9 +106,9 @@ Milestones
 * CalDAV login (working as of version 0.02)
 * Push calendar item into CalDAV server (working as of version 0.02, but both an URL for the caldav server and an URL for the actual calendar has to be given)
 * Config file with CalDAV connection details (working as of version 0.03)
-* Replace calendar-URL with calendar-path
-* Find default calendar-path
-* Show agenda
+* Find default calendar-path (working as of version 0.04)
+* Export ical file (working as of version 0.05)
+* Show agenda (... hit a snag in the underlying libary.  considering to replace the library.)
 * CLI-interface for creating ical todo events
 * Push todo item into CalDAV server
 
@@ -119,3 +120,5 @@ Status
 2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
 2013-10-02: version 0.03 - support for configuration file
 2013-10-05: version 0.04 - no need to specify URL for the default calendar
+2013-10-10: Attempts on implementing "agenda" stalled a bit due to problems with the library used.  Considering to switch library.
+2013-11-30: version 0.05 - added the calendar "addics" command for adding an ics file
