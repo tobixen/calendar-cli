@@ -14,8 +14,9 @@ import uuid
 import json
 import os
 import logging
+import sys
 
-__version__ = "0.04"
+__version__ = "0.05"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -42,20 +43,76 @@ def find_calendar_url(caldav_conn, args):
         splits = urlparse.urlsplit(args.calendar_url)
         if splits.path.startswith('/') or splits.scheme:
             ## assume fully qualified URL or absolute path
-            url = args.calendar_url
+            calendar = args.calendar_url
         else:
             ## assume relative path
-            url = args.caldav_url + args.calendar_url
+            calendar = args.caldav_url + args.calendar_url
     else:
         ## Find default calendar
-        url = caldav_conn.getPrincipal().listCalendars()[0].path
+        calendar = caldav_conn.getPrincipal().listCalendars()[0].path
 
     ## Unique file name
-    if not url.endswith('/'):
-        url += '/'
-    return url
+    if not calendar.endswith('/'):
+        calendar += '/'
+    return calendar
 
+def _calendar_addics(caldav_conn, ics, uid, args):
+    """"
+    "Internal" method for adding a calendar object item to the caldav
+    server through a PUT.  ASSUMES the ics conforms to rfc4791.txt
+    section 4.1 Handles --calendar-url and --icalendar from the args
+    """
+    if args.icalendar and args.nocaldav:
+        print(ics)
+        return
 
+    if args.icalendar or args.nocaldav:
+        raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
+        return
+
+    url = URL(find_calendar_url(caldav_conn, args) + str(uid) + '.ics')
+    caldav_conn.session.writeData(url, ics, 'text/calendar', method='PUT')
+ 
+def calendar_addics(caldav_conn, args):
+    """
+    Takes an ics from external source and puts it into the calendar.
+
+    From the CalDAV RFC:
+
+    Calendar components in a calendar collection that have different UID
+    property values MUST be stored in separate calendar object resources.
+
+    This means the inbound .ics has to be split up into one .ics for
+    each event as long as the uid is different.
+    """
+    if args.file == '-':
+        input_ical = sys.stdin.read()
+    else:
+        with open(args.file, 'r') as f:
+            input_ical = f.read()
+
+    c = Calendar.from_ical(input_ical)
+
+    ## unfortunately we need to mess around with the object internals,
+    ## since the icalendar library doesn't offer methods out of the
+    ## hat for doing such kind of things
+    entries = c.subcomponents
+    
+    ## Timezones should be duplicated into each ics, ref the RFC
+    timezones = [x for x in entries if x.name == 'VTIMEZONE']
+    
+    ## Make a mapping from UID to the other components
+    uids = {}
+    for x in entries:
+        if x.name == 'VTIMEZONE' or not 'UID' in x:
+            continue
+        uid = x['UID'].to_ical()
+        uids[uid] = uids.get(uid, []) + [x]
+
+    for uid in uids:
+        c.subcomponents = timezones + uids[uid]
+        _calendar_addics(caldav_conn, c.to_ical(), uid, args)
+    
 def calendar_add(caldav_conn, args):
     cal = Calendar()
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
@@ -75,16 +132,7 @@ def calendar_add(caldav_conn, args):
     event.add('uid', str(uid))
     event.add('summary', ' '.join(args.description))
     cal.add_component(event)
-
-    if args.icalendar and args.nocaldav:
-        print(cal.to_ical())
-        return
-    if args.icalendar or args.nocaldav:
-        raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
-        return
-    
-    url = URL(find_calendar_url(caldav_conn, args) + str(uid) + '.ics')
-    caldav_conn.session.writeData(url, cal.to_ical(), 'text/calendar', method='PUT')
+    _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
 
 def calendar_agenda(caldav_conn, args):
     if args.nocaldav and args.icalendar:
@@ -175,6 +223,9 @@ def main():
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('description', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
+    calendar_addics_parser = calendar_subparsers.add_parser('addics')
+    calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
+    calendar_addics_parser.set_defaults(func=calendar_addics)
 
     calendar_agenda_parser = calendar_subparsers.add_parser('agenda')
     calendar_agenda_parser.add_argument('from_time', help="Fetch calendar events from this timestamp.  See the documentation for time specifications")
