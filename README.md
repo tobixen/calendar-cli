@@ -6,7 +6,7 @@ Simple command-line CalDav client, for adding and browsing calendar items, todo 
 Status
 ------
 
-This is work in progress.  Writing to calendars seems to work, and I'm using it actively for adding stuff to my calendars - taking out the agenda is not completed yet.
+This is work in progress.  Writing to calendars seems to work, and I'm using it actively for adding stuff to my calendars - taking out the agenda is not completed yet.  This is written in python2 as some of the libraries being used aren't available in python3.
 
 Rationale
 ---------
@@ -108,6 +108,7 @@ Roadmap
 * Delete events.  Needed for making a functional test suite.
 * Fix a functional test suite.
 * CLI-interface for creating ical todo events
+* Wrap it into an easy-to-install package
 
 History
 -------
