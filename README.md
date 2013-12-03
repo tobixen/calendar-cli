@@ -23,7 +23,7 @@ Synopsis
 
     calendar-cli.py [global options] [command] [command options] [subcommand] [subcommand options] [subcommand arguments] ...
 
-cli.py should be symlinked to the various commands.
+I'm intending to make it easier by allowing calendar-cli.py to be symlinked to the various commands.
 
 ### Global options
 
@@ -35,22 +35,25 @@ Always consult --help for up-to-date and complete listings of options.
 The list below will only contain the most important options and may
 not be up-to-date and may contain features not implemented yet.
 
-* --interactive, -i: stop and query the user rather often
+* --interactive: stop and query the user rather often
 * --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server.  Fits better into a configuration file.
 * --config-file: use a specific configuration file (default: $HOME/.calendar-cli.conf)
 * --config-section: use a specific section from the config file (i.e. to select a different caldav-server to connect to)
-* --icalendar: instead of connecting to a CalDAV server, write an icalendar file to stdout
+* --icalendar: Write or read icalendar to/from stdout/stdin
+* --nocaldav: don't connect to a caldav server
 
 ### Commands
 
 * cal - access/modify a calendar
-    * subcommands: add, agenda
+    * subcommands: add, addics (for uploading events in ical format), agenda
 * todo - access/modify a todo-list
     * subcommands: add, agenda
 
+(only "cal add" and "cal addics" works as of v0.06 / 2013-12-02)
+
 ### Event time specification
 
-Supported in v0.01:
+Supported in v0.06:
 
 * anything recognized by dateutil.parser.parse()
 
@@ -63,7 +66,7 @@ All of those would eventually be supported in future versions if it's not too di
 * weekday instead of an ISO date
 * clock time without the date; event will be assumed to start within 24 hours.
 
-Alternatively, endtime or duration can be given through options.
+Alternatively, endtime or duration can be given through options (not supported as of 0.06.  All events are considered to be one hour long).
 
 Configuration file
 ------------------
@@ -104,11 +107,13 @@ Objectives
 
 Roadmap
 -------
+* Allow specification of event duration when adding events to calendar
 * Show agenda. Hope to have this in place during January 2014.  (I've been hitting a snag in the underlying library, and will probably have to replace it).
 * Delete events.  Needed for making a functional test suite.
 * Fix a functional test suite.
 * CLI-interface for creating ical todo events
 * Wrap it into an easy-to-install package
+* Fix easy-to-use symlinks
 
 History
 -------
