@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python2
 
 ## (the icalendar library is not ported to python3?)
 
@@ -8,15 +8,14 @@ import pytz
 from datetime import datetime, timedelta
 import dateutil.parser
 from icalendar import Calendar,Event
-from caldavclientlibrary.client.account import CalDAVAccount
-from caldavclientlibrary.protocol.url import URL
+import caldav
 import uuid
 import json
 import os
 import logging
 import sys
 
-__version__ = "0.05"
+__version__ = "0.5.1"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -34,27 +33,18 @@ def niy(*args, **kwargs):
 
 def caldav_connect(args):
     # Create the account
-    splits = urlparse.urlsplit(args.caldav_url)
-    ssl = (splits.scheme == "https")
-    return CalDAVAccount(splits.netloc, ssl=ssl, user=args.caldav_user, pswd=args.caldav_pass, root=(splits.path or '/'), principal=None, logging=args.debug_logging)
+    return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass)
 
-def find_calendar_url(caldav_conn, args):
+## TODO
+def find_calendar(caldav_conn, args):
     if args.calendar_url:
-        splits = urlparse.urlsplit(args.calendar_url)
-        if splits.path.startswith('/') or splits.scheme:
-            ## assume fully qualified URL or absolute path
-            calendar = args.calendar_url
+        if '/' in args.calendar_url:
+            return caldav.Calendar(client=caldav_conn, url=args.calendar_url)
         else:
-            ## assume relative path
-            calendar = args.caldav_url + args.calendar_url
+            return caldav.Principal(caldav_conn).calendar(name=args.calendar_url)
     else:
         ## Find default calendar
-        calendar = caldav_conn.getPrincipal().listCalendars()[0].path
-
-    ## Unique file name
-    if not calendar.endswith('/'):
-        calendar += '/'
-    return calendar
+        return caldav.Principal(caldav_conn).calendars()[0]
 
 def _calendar_addics(caldav_conn, ics, uid, args):
     """"
@@ -70,8 +60,8 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
         return
 
-    url = URL(find_calendar_url(caldav_conn, args) + str(uid) + '.ics')
-    caldav_conn.session.writeData(url, ics, 'text/calendar', method='PUT')
+    c = find_calendar(caldav_conn, args)
+    c.add_event(ics)
  
 def calendar_addics(caldav_conn, args):
     """
@@ -148,16 +138,13 @@ def calendar_agenda(caldav_conn, args):
         dtend = dtstart + timedelta(1,0)
     ## TODO: time zone
     ## No need with "expand" - as for now the method below throws away the expanded data :-(  We get a list of URLs, and then we need to do a get on each and one of them ...
-    collection = caldav_conn.session.queryCollection(URL(find_calendar_url(caldav_conn, args)), timerange=True, start=dtstart.strftime("%FT%H%M%S"), end=dtend.strftime("%FT%H%M%S"), expand=False)
-    ret_ical = []
-    for url in collection:
-        ret_ical.append(caldav_conn.session.readData(url))
+    events = caldav_conn.date_search(dtstart, dtend)
     if args.icalendar:
-        for ical in ret_ical:
-            print ical
+        for ical in events:
+            print ical.data
     else:
         import pdb; pdb.set_trace()
-        ret_ical = [Calendar.from_ical(c[0]) for c in ret_ical]
+        events = [Calendar.from_ical(event.data) for event in events]
         niy("parse calendar events and print them in a nice format")
 
 def main():
@@ -217,7 +204,7 @@ def main():
     subparsers = parser.add_subparsers(title='command')
 
     calendar_parser = subparsers.add_parser('calendar')
-    calendar_parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL)")
+    calendar_parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
     calendar_subparsers = calendar_parser.add_subparsers(title='subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
