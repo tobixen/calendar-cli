@@ -31,22 +31,10 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     scripts=['calendar-cli.py'],
-    dependency_links = [
-        # The package doesn't seem to be on pypi.
-        # We assume a low version number in case it gets uploaded
-        # so that the higher version is chosen over the git version
-        #
-        # There is a mirror here:
-        'https://github.com/skarra/CalDAVClientLibrary/tarball/master#egg=caldavclientlibrary-0.0.1',
-        'git+https://github.com/skarra/CalDAVClientLibrary.git#egg=caldavclientlibrary-0.0.1',
-        # We should prefer the official SVN
-        'svn+http://svn.calendarserver.org/repository/calendarserver/CalDAVClientLibrary/trunk#egg=caldavclientlibrary-0.0.2',
-        # But there is an issue with the upstream setup.py, it does not have a name=''
-        # So we load the patched version
-        'git+https://github.com/muelli/CalDAVClientLibrary.git#egg=caldavclientlibrary-0.0.3',
-    ],
     install_requires=[
         'icalendar',
-        'caldavclientlibrary',
+        'caldav>=0.2',
+        'pytz',
+        'tzlocal'
     ],
 )
