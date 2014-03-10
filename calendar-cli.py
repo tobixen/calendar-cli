@@ -5,6 +5,7 @@
 import argparse
 import urlparse
 import pytz
+import tzlocal
 from datetime import datetime, timedelta
 import dateutil.parser
 from icalendar import Calendar,Event
@@ -15,7 +16,7 @@ import os
 import logging
 import sys
 
-__version__ = "0.5.1"
+__version__ = "0.6.1"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -35,7 +36,6 @@ def caldav_connect(args):
     # Create the account
     return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass)
 
-## TODO
 def find_calendar(caldav_conn, args):
     if args.calendar_url:
         if '/' in args.calendar_url:
@@ -107,9 +107,8 @@ def calendar_add(caldav_conn, args):
     cal = Calendar()
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
-    if args.timezone:
-        tz = pytz.timezone(args.timezone)
     event = Event()
+    ## TODO: timezone
     ## read timestamps from arguments
     dtstart = dateutil.parser.parse(args.event_time)
     event.add('dtstart', dtstart)
@@ -138,14 +137,28 @@ def calendar_agenda(caldav_conn, args):
         dtend = dtstart + timedelta(1,0)
     ## TODO: time zone
     ## No need with "expand" - as for now the method below throws away the expanded data :-(  We get a list of URLs, and then we need to do a get on each and one of them ...
-    events = caldav_conn.date_search(dtstart, dtend)
+    events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend)
+    events = []
     if args.icalendar:
-        for ical in events:
+        for ical in events_:
             print ical.data
     else:
-        import pdb; pdb.set_trace()
-        events = [Calendar.from_ical(event.data) for event in events]
-        niy("parse calendar events and print them in a nice format")
+        ## flatten. A recurring event may be a list of events.
+        for event_cal in events_:
+            for event in event_cal.instance.components():
+                dtstart = event.dtstart.value
+                if not dtstart.tzinfo:
+                    dtstart = args.timezone.localize(dtstart)
+                events.append({'dtstart': dtstart, 'instance': event})
+        events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
+        for event in events:
+            dtime = event['dtstart'].strftime("%F %H:%M")
+            summary = ""
+            for summary_attr in ('summary', 'location'):
+                if hasattr(event['instance'], summary_attr):
+                    summary = getattr(event['instance'], summary_attr).value
+                    break
+            print "%s %s" % (dtime, summary)
 
 def main():
     ## This boilerplate pattern is from
@@ -223,6 +236,11 @@ def main():
     todo_parser.set_defaults(func=niy)
     args = parser.parse_args(remaining_argv)
 
+    if args.timezone:
+        args.timezone = pytz.timezone(args.timezone)
+    else:
+        args.timezone = tzlocal.get_localzone()
+        
     if not args.nocaldav:
         caldav_conn = caldav_connect(args)
 
