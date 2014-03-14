@@ -112,20 +112,6 @@ Objectives
 * It should be possible to get out lists ("agenda") of calendar items and todo-items.
 * Interface for copying calendar items between calendars, even between calendars on distinct caldav servers
 
-<<<<<<< HEAD
-Milestones
-----------
-
-* CLI-interface for creating ical calendar events (working as of version 0.01)
-* CalDAV login (working as of version 0.02)
-* Push calendar item into CalDAV server (working as of version 0.02, but both an URL for the caldav server and an URL for the actual calendar has to be given)
-* Config file with CalDAV connection details (working as of version 0.03)
-* Replace calendar-URL with calendar-path (working as of version 0.04)
-* Find default calendar-path (working as of version 0.04)
-* Show agenda
-* CLI-interface for creating ical todo events
-* Push todo item into CalDAV server
-
 Status
 ------
 
@@ -136,26 +122,14 @@ Status
 2013-10-05: version 0.04 - no need to specify URL for the default calendar
 2013-12 - 2014-03: helped cyrilrbt on making a new release of the caldav library
 2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
-=======
+2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
+
 Roadmap
 -------
 * Allow specification of event duration when adding events to calendar
-* Show agenda. Hope to have this in place during January 2014.  (I've obeen hitting a snag in the underlying library, and will probably have to replace it).
 * Delete events.  Needed for making a functional test suite.
 * Fix a functional test suite.
 * CLI-interface for creating ical todo events
 * Wrap it into an easy-to-install package
 * Fix easy-to-use symlinks
 
-History
--------
-
-* 2013-09-15: Made a repository at github and wrote up this README.
-* 2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
-* 2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
-* 2013-10-02: version 0.03 - support for configuration file
-* 2013-10-05: version 0.04 - no need to specify URL for the default calendar
-* 2013-10-10: Attempts on implementing "agenda" stalled a bit due to problems with the library used.  Considering to switch library.
-* 2013-11-30: version 0.05 - added the calendar "addics" command for adding an ics file
-* 2013-12-02: Some merging of work between the "agenda" branch and the master branch; causing a minor API change (new option --nocaldav has to be specified if running the utility without connecting to a caldav server)
->>>>>>> master
