@@ -6,7 +6,7 @@ Simple command-line CalDav client, for adding and browsing calendar items, todo 
 Support
 -------
 
-#calendar-cli at irc.freenode.org
+\#calendar-cli at irc.freenode.org
 
 Status
 ------
