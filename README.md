@@ -8,7 +8,7 @@ There is a competing project at https://github.com/geier/khal - I haven't invest
 Support
 -------
 
-#calendar-cli at irc.freenode.org
+\#calendar-cli at irc.freenode.org
 
 Status
 ------
