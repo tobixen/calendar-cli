@@ -3,6 +3,8 @@ calendar-cli
 
 Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc
 
+There is a competing project at https://github.com/geier/khal - I haven't investigated yet, but if this project caters my need, the calendar-cli project may be discontinued.
+
 Support
 -------
 
