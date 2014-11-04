@@ -3,12 +3,12 @@ calendar-cli
 
 Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc
 
-There is a competing project at https://github.com/geier/khal - I haven't investigated yet, but if this project caters my need, the calendar-cli project may be discontinued.
+There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage.
 
 Support
 -------
 
-\#calendar-cli at irc.freenode.org
+\#calendar-cli at irc.freenode.org, eventually t-calendar-cli@tobixen.no
 
 Status
 ------
