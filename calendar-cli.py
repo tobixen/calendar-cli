@@ -164,7 +164,9 @@ def calendar_agenda(caldav_conn, args):
                 if hasattr(event['instance'], summary_attr):
                     summary = getattr(event['instance'], summary_attr).value
                     break
-            print "%s %s" % (dtime, summary)
+            if hasattr(summary, 'encode'):
+                summary = summary.encode('utf-8')
+            print("%s %s") % (dtime, summary)
 
 def main():
     ## This boilerplate pattern is from
