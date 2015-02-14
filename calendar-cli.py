@@ -21,9 +21,9 @@ __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
 #__credits__ = []
-__license__ = "GPL"
+__license__ = "GPLv3+"
 __maintainer__ = "Tobias Brox"
-__email__ = "t-calendar-cli@tobixen.no"
+__author_email__ = "t-calendar-cli@tobixen.no"
 __status__ = "Development"
 __product__ = "calendar-cli"
 

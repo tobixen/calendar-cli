@@ -3,32 +3,35 @@
 import sys
 import os
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, find_packages
+
+## TODO: "import imp" will not work from python 3.3, ref
+## http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path.
+## Since we depend on caldav which depends on vobject which currently
+## doesn't support python3, it's not an issue right now.
+import imp
+my_script = imp.load_source('my_script', './calendar-cli.py')
+metadata = {}
+for attribute in ('version', 'author', 'author_email', 'license'):
+    if hasattr(my_script, '__%s__' % attribute):
+        metadata[attribute] = getattr(my_script, '__%s__' % attribute)
 
 
 setup(
     name='calendar-cli',
-    version='0.1',
     description='Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.',
     url='https://github.com/tobixen/calendar-cli',
     #packages=['',
     #          ],
-    license='GPLv3+',
-    author='Tobias Brox',
-    author_email='t-calendar-cli@tobixen.no',
     classifiers=[
-        #"Development Status :: 5 - Production/Stable",
+        #"Development Status :: ..."
         "Environment :: Web Environment",
-        "Intended Audience :: Developers",
-        #"License :: OSI Approved :: Apache Software License",
+        #"Intended Audience :: Developers",
+        #"License :: OSI Approved :: ...",
         "Operating System :: POSIX",
         "Programming Language :: Python",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
-        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     scripts=['calendar-cli.py'],
     install_requires=[
@@ -37,4 +40,5 @@ setup(
         'pytz',
         'tzlocal'
     ],
+   **metadata
 )
