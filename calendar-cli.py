@@ -16,7 +16,7 @@ import os
 import logging
 import sys
 
-__version__ = "0.6"
+__version__ = "0.7-devel"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -122,6 +122,31 @@ def calendar_add(caldav_conn, args):
     event.add('summary', ' '.join(args.description))
     cal.add_component(event)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
+    print("Added event with uid=%s" % uid)
+
+def calendar_delete(caldav_conn, args):
+    cal = find_calendar(caldav_conn, args)
+    if args.event_uid:
+        event = cal.event_by_uid(args.event_uid)
+    elif args.event_url:
+        event = cal.event_by_url(args.event_url)
+    elif args.event_timestamp:
+        raise NotImplementedError("this hasn't been implemented yet - see code comments")
+        ## It seems that at least DAViCal requires the end of the
+        ## search to be beyond the event dtend, which makes deletion
+        ## by event_timestamp a bit more complex to implement.
+        dtstart = dateutil.parser.parse(args.event_timestamp)
+        #dtend = dtstart + timedelta(1,0,0,1)
+        events = cal.date_search(dtstart, dtend)
+        if len(events)>1:
+            raise NotImplementedError("Several events found with that timestamp; cowardly refusing to delete anything")
+        elif not len(events):
+            raise caldav.lib.error.NotFoundError("Couldn't find any event at %s" % dtstart)
+        else:
+            event = events[0]
+    else:
+        raise ValueError("Event deletion failed: either uid, url or timestamp is needed")
+    event.delete()
 
 def calendar_agenda(caldav_conn, args):
     if args.nocaldav and args.icalendar:
@@ -142,7 +167,6 @@ def calendar_agenda(caldav_conn, args):
         dtend = dtstart + timedelta(args.agenda_days)
 
     ## TODO: time zone
-    ## No need with "expand" - as for now the method below throws away the expanded data :-(  We get a list of URLs, and then we need to do a get on each and one of them ...
     events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend)
     events = []
     if args.icalendar:
@@ -169,6 +193,9 @@ def calendar_agenda(caldav_conn, args):
             print("%s %s") % (dtime, summary)
 
 def main():
+    """
+    the main function does (almost) nothing but parsing command line parameters
+    """
     ## This boilerplate pattern is from
     ## http://stackoverflow.com/questions/3609852 
     ## We want defaults for the command line options to be fetched from the config file
@@ -241,6 +268,12 @@ def main():
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
+
+    calendar_delete_parser = calendar_subparsers.add_parser('delete')
+    calendar_delete_parser.add_argument('--event-uid')
+    calendar_delete_parser.add_argument('--event-url')
+    calendar_delete_parser.add_argument('--event-timestamp')
+    calendar_delete_parser.set_defaults(func=calendar_delete)
 
     todo_parser = subparsers.add_parser('todo')
     todo_parser.set_defaults(func=niy)
