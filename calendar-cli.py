@@ -16,7 +16,7 @@ import os
 import logging
 import sys
 
-__version__ = "0.7-devel"
+__version__ = "0.7"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -182,15 +182,16 @@ def calendar_agenda(caldav_conn, args):
                 events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
-            dtime = event['dtstart'].strftime("%F %H:%M")
-            summary = ""
+            event['dstart_sql'] = event['dtstart'].strftime("%F %H:%M")
             for summary_attr in ('summary', 'location'):
                 if hasattr(event['instance'], summary_attr):
-                    summary = getattr(event['instance'], summary_attr).value
+                    event['description'] = getattr(event['instance'], summary_attr).value
                     break
-            if hasattr(summary, 'encode'):
-                summary = summary.encode('utf-8')
-            print("%s %s") % (dtime, summary)
+            event['uid'] = event['instance'].uid.value
+            ## TODO: this will probably break and is probably moot on python3?
+            if hasattr(event['description'], 'encode'):
+                event['description'] = event['description'].encode('utf-8')
+            print(args.event_template.format(**event))
 
 def main():
     """
@@ -267,6 +268,7 @@ def main():
     calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
+    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart_sql} {description}")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 
     calendar_delete_parser = calendar_subparsers.add_parser('delete')

@@ -8,7 +8,7 @@ There is a "competing" project at https://github.com/geier/khal - you may want t
 Support
 -------
 
-\#calendar-cli at irc.freenode.org, eventually t-calendar-cli@tobixen.no
+\#calendar-cli at irc.freenode.org, eventually t-calendar-cli@tobixen.no, eventually the issue tracker at https://github.com/tobixen/calendar-cli/issues
 
 Status
 ------
@@ -125,13 +125,11 @@ Status
 2013-12 - 2014-03: helped cyrilrbt on making a new release of the caldav library
 2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
 2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
+2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
 
 Roadmap
 -------
 * Allow specification of event duration when adding events to calendar
-* Delete events.  Needed for making a functional test suite.
-* Fix a functional test suite.
 * CLI-interface for creating ical todo events
-* Wrap it into an easy-to-install package
-* Fix easy-to-use symlinks
-
+* Fix easy-to-use symlinks (or alternatively wrapper scripts)
+* Make some nosetests
