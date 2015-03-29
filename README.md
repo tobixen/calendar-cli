@@ -81,6 +81,8 @@ Alternatively, endtime or duration can be given through options (not supported a
 Configuration file
 ------------------
 
+Configuration file is by default located in $HOME/.config/calendar.conf and should be in json syntax.  As of version 0.8 you may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax.
+
 (I considered a configuration file in .ini-format, having a "default"-section with default values for any global options, and optionally other sections for different CalDAV-servers.  Asking a bit around for recommendations on config file format as well as location, I was told that the .ini-format is not a standard, I'd be better off using a standard like yaml, json or xml.  Personally I like json a bit better than yaml - after consulting with a friend I ended up with json.  Location ... I think it's "cleaner" to keep it in ~/.config/, and I'd like any calendar application to be able to access the file, hence it got ~/.config/calendar.conf rather than ~/.calendar-cli.conf)
 
 The file may look like this:
@@ -126,6 +128,7 @@ Status
 2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
 2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
 2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
+2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
 
 Roadmap
 -------

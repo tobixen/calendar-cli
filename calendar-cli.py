@@ -6,6 +6,7 @@ import argparse
 import urlparse
 import pytz
 import tzlocal
+import time
 from datetime import datetime, timedelta
 import dateutil.parser
 from icalendar import Calendar,Event
@@ -102,6 +103,78 @@ def calendar_addics(caldav_conn, args):
     for uid in uids:
         c.subcomponents = timezones + uids[uid]
         _calendar_addics(caldav_conn, c.to_ical(), uid, args)
+
+def interactive_config(args, config, remaining_argv):
+    import readline
+    
+    new_config = False
+    section = 'default'
+    backup = {}
+    modified = False
+    
+    print("Welcome to the interactive calendar configuration mode")
+    print("Warning - untested code ahead, raise issues at t-calendar-cli@tobixen.no")
+    if not config or not hasattr(config, 'keys'):
+        config = {}
+        print("No valid existing configuration found")
+        new_config = True
+    if config:
+        print("The following sections have been found: ")
+        print("\n".join(config.keys()))
+        if args.config_section and args.config_section != 'default':
+            section = args.config_section
+        else:
+            ## TODO: tab completion
+            section = raw_input("Chose one of those, or a new name / no name for a new configuration section: ")
+        if section in config:
+            backup = config[section].copy()
+        print("Using section " + section)
+    else:
+        section = 'default'
+
+    if not section in config:
+        config[section] = {}
+
+    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'language', 'timezone'):
+        print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
+        value = raw_input("Enter new value (or just enter to keep the old): ")
+        if value:
+            config[section][config_key] = value
+            modified = True
+
+    if not modified:
+        print("No configuration changes have been done")
+    else:
+        options = []
+        if section:
+            options.append(('save', 'save configuration into section %s' % section))
+        if backup or not section:
+            options.append(('save_other', 'add this new configuration into a new section in the configuration file'))
+        if remaining_argv:
+            options.append(('use', 'use this configuration without saving'))
+        options.append(('abort', 'abort without saving'))
+        print("CONFIGURATION DONE ...")
+        for o in options:
+            print("Type %s if you want to %s" % o)
+        cmd = raw_input("Enter a command: ")
+        if cmd in ('save', 'save_other'):
+            if cmd == 'save_other':
+                new_section = raw_input("New config section name: ")
+                config[new_section] = config[section]
+                if backup:
+                    config[section] = backup
+                else:
+                    del config[section]
+                section = new_section
+            if os.path.isfile(args.config_file):
+                os.rename(args.config_file, "%s.%s.bak" % (args.config_file, int(time.time())))
+            with open(args.config_file, 'w') as outfile:
+                json.dump(config, outfile, indent=4)
+        
+
+    if args.config_section == 'default' and section != 'default':
+        config['default'] = config[section]
+    return config
     
 def calendar_add(caldav_conn, args):
     cal = Calendar()
@@ -215,9 +288,12 @@ def main():
                              help="Specify config file", metavar="FILE", default=os.getenv('XDG_CONFIG_HOME', os.getenv('HOME', '~') + '/.config')+'/calendar.conf')
     conf_parser.add_argument("--config-section",
                              help="Specify config section; allows several caldav servers to be configured in the same config file",  default='default')
+    conf_parser.add_argument("--interactive-config",
+                             help="Interactively ask for configuration", action="store_true")
     args, remaining_argv = conf_parser.parse_known_args()
 
     config = {}
+
     try:
         with open(args.config_file) as config_file:
             config = json.load(config_file)
@@ -225,10 +301,17 @@ def main():
         ## File not found
         logging.info("no config file found")
     except ValueError:
-        logging.error("error in config file", exc_info=True)
-        raise
+        if args.interactive_config:
+            logging.error("error in config file.  Be aware that the current config file will be ignored and overwritten", exc_info=True)
+        else:
+            logging.error("error in config file.  You may want to run --interactive-config or fix the config file", exc_info=True)
 
-    defaults = config.get(args.config_section, {})
+    if args.interactive_config:
+        config = interactive_config(args, config, remaining_argv)
+        if not remaining_argv:
+            return
+    else:
+        defaults = config.get(args.config_section, {})
 
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
