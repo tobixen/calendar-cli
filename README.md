@@ -10,14 +10,6 @@ Support
 
 \#calendar-cli at irc.freenode.org, eventually t-calendar-cli@tobixen.no, eventually the issue tracker at https://github.com/tobixen/calendar-cli/issues
 
-Status
-------
-
-This is work in progress.  Writing to calendars seems to work, and I'm using it actively for adding stuff to my calendars - taking out the agenda is also possible, but could need more work.
-
-This is written in python2 as some of the libraries being used aren't
-available in python3.
-
 Rationale
 ---------
 
@@ -116,19 +108,19 @@ Objectives
 * It should be possible to get out lists ("agenda") of calendar items and todo-items.
 * Interface for copying calendar items between calendars, even between calendars on distinct caldav servers
 
-Status
-------
+Changelog
+---------
 
-2013-09-15: Made a repository at github and wrote up this README.
-2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
-2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
-2013-10-02: version 0.03 - support for configuration file
-2013-10-05: version 0.04 - no need to specify URL for the default calendar
-2013-12 - 2014-03: helped cyrilrbt on making a new release of the caldav library
-2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
-2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
-2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
-2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
+* 2013-09-15: Made a repository at github and wrote up this README.
+* 2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
+* 2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
+* 2013-10-02: version 0.03 - support for configuration file
+* 2013-10-05: version 0.04 - no need to specify URL for the default calendar
+* 2013-12 - 2014-03: helped cyrilrbt on making a new release of the caldav library
+* 2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
+* 2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
+* 2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
+* 2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
 
 Roadmap
 -------
@@ -139,4 +131,4 @@ Roadmap
 
 Donations
 ---------
-Donations are not expected, but as long as this is a one-man-project at least it's not problematic to receive donations.  Send bitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
+Donations are not expected, but as long as this is a one-man hobby project at least it's not problematic to receive donations.  Send bitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
