@@ -136,3 +136,7 @@ Roadmap
 * CLI-interface for creating ical todo events
 * Fix easy-to-use symlinks (or alternatively wrapper scripts)
 * Make some nosetests
+
+Donations
+---------
+Donations are not expected, but as long as this is a one-man-project at least it's not problematic to receive donations.  Send bitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
