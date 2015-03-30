@@ -3,7 +3,6 @@
 ## (the icalendar library is not ported to python3?)
 
 import argparse
-import urlparse
 import pytz
 import tzlocal
 import time
