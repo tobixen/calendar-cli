@@ -265,7 +265,7 @@ def calendar_agenda(caldav_conn, args):
     events = []
     if args.icalendar:
         for ical in events_:
-            print ical.data
+            print(ical.data)
     else:
         ## flatten. A recurring event may be a list of events.
         for event_cal in events_:
