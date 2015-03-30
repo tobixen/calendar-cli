@@ -183,10 +183,31 @@ def calendar_add(caldav_conn, args):
     event = Event()
     ## TODO: timezone
     ## read timestamps from arguments
-    dtstart = dateutil.parser.parse(args.event_time)
+    time_units = {
+        's': 1, 'm': 60, 'h': 3600,
+        'd': 86400, 'w': 604800
+    }
+    event_spec = args.event_time.split('+')
+    if len(event_spec)>3:
+        raise ValueError('Invalid event time "%s" - can max contain 2 plus-signs' % event_time)
+    elif len(event_spec)==3:
+        event_time = '%s+%s' % tuple(event_spec[0:2])
+        event_duration = event_spec[2]
+    elif len(event_spec)==2 and not event_spec[1][-1:] in time_units:
+        event_time = '%s+%s' % tuple(event_spec[0:2])
+        event_duration = '1h'
+    elif len(event_spec)==2:
+        event_time = '%s' % event_spec[0]
+        event_duration = event_spec[1]
+    else:
+        event_time = event_spec[0]
+        event_duration = '1h'
+    ## TODO: error handling
+    event_duration_secs = int(event_duration[:-1]) * time_units[event_duration[-1:]]
+    dtstart = dateutil.parser.parse(event_spec[0])
     event.add('dtstart', dtstart)
     ## TODO: handle duration and end-time as options.  default 3600s by now.
-    event.add('dtend', dtstart + timedelta(0,3600))
+    event.add('dtend', dtstart + timedelta(0,event_duration_secs))
     ## not really correct, and it breaks i.e. with google calendar
     #event.add('dtstamp', datetime.now())
     ## maybe we should generate some uid?

@@ -55,20 +55,20 @@ not be up-to-date and may contain features not implemented yet.
 
 ### Event time specification
 
-Supported in v0.06:
+Supported in v0.9:
 
 * anything recognized by dateutil.parser.parse()
+* An iso time stamp, followed with the duration, using either + or space as separator.  Duration is a number postfixed by s for seconds, m for minutes, h for hours, d for days, w for weeks and y for years (i.e. 2013-09-10T13:37+30d)
 
 All of those would eventually be supported in future versions if it's not too difficult to achieve:
 
-* An iso time stamp, followed with the duration, using either + or space as separator.  Duration is a number postfixed by s for seconds, m for minutes, h for hours, d for days, w for weeks and y for years (i.e. 2013-09-10T13:37+30d)
 * Two ISO timestamps separated by a dash (-)
 * ISO dates without times (default duration will be one day, for two dates full days up to and including the end date is counted)
 * "tomorrow" instead of an ISO date
 * weekday instead of an ISO date
 * clock time without the date; event will be assumed to start within 24 hours.
 
-Alternatively, endtime or duration can be given through options (not supported as of 0.06.  All events are considered to be one hour long).
+Alternatively, endtime or duration can be given through options (not supported as of 0.9)
 
 Configuration file
 ------------------
@@ -121,10 +121,12 @@ Changelog
 * 2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
 * 2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
 * 2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
+* 2015-03-30: version 0.9 - now it's possible to set a duration when adding events to the calendar.
 
 Roadmap
 -------
-* Allow specification of event duration when adding events to calendar
+* Allow pulling out an agenda for all calendars at once (though, with the current design it's so much easier to do it through a bash loop rather than in the python code, so this is postponed for a while)
+* Allow specification of event duration and/or event end time through options
 * CLI-interface for creating ical todo events
 * Fix easy-to-use symlinks (or alternatively wrapper scripts)
 * Make some nosetests
