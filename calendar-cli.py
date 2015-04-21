@@ -8,7 +8,7 @@ import tzlocal
 import time
 from datetime import datetime, timedelta
 import dateutil.parser
-from icalendar import Calendar,Event
+from icalendar import Calendar,Event,Todo
 import caldav
 import uuid
 import json
@@ -241,6 +241,21 @@ def calendar_delete(caldav_conn, args):
         raise ValueError("Event deletion failed: either uid, url or timestamp is needed")
     event.delete()
 
+def todo_add(caldav_conn, args):
+    ## TODO: copied from calendar_add, should be consolidated back again
+    cal = Calendar()
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('version', '2.0')
+    todo = Todo()
+    ## TODO: not really correct, and it breaks i.e. with google calendar
+    #todo.add('dtstamp', datetime.now())
+    uid = uuid.uuid1()
+    todo.add('uid', str(uid))
+    todo.add('summary', args.description)
+    cal.add_component(todo)
+    _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
+    print("Added todo item with uid=%s" % uid)
+
 def calendar_agenda(caldav_conn, args):
     if args.nocaldav and args.icalendar:
         niy(feature="Read events from stdin in ical format")
@@ -350,14 +365,23 @@ def main():
     parser.add_argument("--caldav-user", help="username to log into the caldav server", metavar="USER")
     parser.add_argument("--caldav-pass", help="password to log into the caldav server", metavar="PASS")
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
+    parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
 
     ## TODO: check sys.argv[0] to find command
     ## TODO: set up logging
     subparsers = parser.add_subparsers(title='command')
 
+    ## Tasks
+    todo_parser = subparsers.add_parser('todo')
+    todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
+    todo_add_parser = todo_subparsers.add_parser('add')
+    todo_add_parser.add_argument('description', nargs='+')
+    #todo_add_parser.add_argument('--due-date', ....)
+    #todo_add_parser.add_argument('--priority', ....)
+    todo_add_parser.set_defaults(func=todo_add)
+
     calendar_parser = subparsers.add_parser('calendar')
-    calendar_parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
-    calendar_subparsers = calendar_parser.add_subparsers(title='subcommand')
+    calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('description', nargs='+')
@@ -380,8 +404,6 @@ def main():
     calendar_delete_parser.add_argument('--event-timestamp')
     calendar_delete_parser.set_defaults(func=calendar_delete)
 
-    todo_parser = subparsers.add_parser('todo')
-    todo_parser.set_defaults(func=niy)
     args = parser.parse_args(remaining_argv)
 
     if args.timezone:
