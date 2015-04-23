@@ -290,7 +290,7 @@ def calendar_agenda(caldav_conn, args):
                 events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
-            event['dstart_sql'] = event['dtstart'].strftime("%F %H:%M")
+            event['dstart'] = event['dtstart'].strftime(args.timestamp_format)
             for summary_attr in ('summary', 'location'):
                 if hasattr(event['instance'], summary_attr):
                     event['description'] = getattr(event['instance'], summary_attr).value
@@ -395,7 +395,8 @@ def main():
     calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
-    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart_sql} {description}")
+    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart} {description}")
+    calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F %H:%M (%a)")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 
     calendar_delete_parser = calendar_subparsers.add_parser('delete')
