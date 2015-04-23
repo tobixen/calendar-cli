@@ -285,7 +285,7 @@ def calendar_agenda(caldav_conn, args):
         for event_cal in events_:
             for event in event_cal.instance.components():
                 dtstart = event.dtstart.value
-                if not dtstart.tzinfo:
+                if not hasattr(dtstart, 'tzinfo') or not dtstart.tzinfo:
                     dtstart = args.timezone.localize(dtstart)
                 events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
