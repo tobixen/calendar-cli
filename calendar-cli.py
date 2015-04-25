@@ -207,8 +207,9 @@ def calendar_add(caldav_conn, args):
     event.add('dtstart', dtstart)
     ## TODO: handle duration and end-time as options.  default 3600s by now.
     event.add('dtend', dtstart + timedelta(0,event_duration_secs))
+    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## not really correct, and it breaks i.e. with google calendar
-    #event.add('dtstamp', datetime.now())
+    event.add('dtstamp', datetime.now())
     ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
@@ -220,7 +221,11 @@ def calendar_add(caldav_conn, args):
 def calendar_delete(caldav_conn, args):
     cal = find_calendar(caldav_conn, args)
     if args.event_uid:
-        event = cal.event_by_uid(args.event_uid)
+        ## TODO: backwards compatibility hack, and/or caldav API in flux hack.  Should go away at some point.
+        if hasattr(cal, 'object_by_uid'):
+            event = cal.object_by_uid(args.event_uid)
+        else:
+            event = cal.event_by_uid(args.event_uid)
     elif args.event_url:
         event = cal.event_by_url(args.event_url)
     elif args.event_timestamp:
@@ -247,8 +252,9 @@ def todo_add(caldav_conn, args):
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
     todo = Todo()
+    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## TODO: not really correct, and it breaks i.e. with google calendar
-    #todo.add('dtstamp', datetime.now())
+    todo.add('dtstamp', datetime.now())
     uid = uuid.uuid1()
     todo.add('uid', str(uid))
     todo.add('summary', args.description)
@@ -258,7 +264,7 @@ def todo_add(caldav_conn, args):
 
 def calendar_agenda(caldav_conn, args):
     if args.nocaldav and args.icalendar:
-        niy(feature="Read events from stdin in ical format")
+        niy(feature="Read events from stdin in ical format and list out in prettified format")
 
     if args.nocaldav:
         raise ValueError("Agenda with --nocaldav only makes sense together with --icalendar")
@@ -285,7 +291,9 @@ def calendar_agenda(caldav_conn, args):
         for event_cal in events_:
             for event in event_cal.instance.components():
                 dtstart = event.dtstart.value
-                if hasattr(dtstart, 'tzinfo') and not dtstart.tzinfo:
+                if not isinstance(dtstart, datetime):
+                    dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
+                if not dtstart.tzinfo:
                     dtstart = args.timezone.localize(dtstart)
                 events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
@@ -300,6 +308,30 @@ def calendar_agenda(caldav_conn, args):
             if hasattr(event['description'], 'encode'):
                 event['description'] = event['description'].encode('utf-8')
             print(args.event_template.format(**event))
+
+def todo_list(caldav_conn, args):
+    if args.nocaldav and args.icalendar:
+        niy(feature="display a prettified tasklist based on stdin ical")
+    if args.nocaldav:
+        raise ValueError("Todo-listing with --nocaldav only makes sense together with --icalendar")
+    tasks = find_calendar(caldav_conn, args).todos()
+    if args.icalendar:
+        for ical in tasks:
+            print(ical.data)
+    else:
+        for task in tasks:
+            t = {'instance': task}
+            t['dtstamp'] = getattr(task.instance.vtodo, 'dtstamp', datetime(1970, 1, 1))
+            t['due'] = getattr(task.instance.vtodo, 'due', t['dtstamp'] + timedelta(args.default_due))
+            for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
+                if hasattr(task.instance.vtodo, summary_attr):
+                    t['summary'] = getattr(task.instance.vtodo, summary_attr).value
+                    break
+            t['uid'] = task.instance.vtodo.uid.value
+            ## TODO: this will probably break and is probably moot on python3?
+            if hasattr(t['summary'], 'encode'):
+                t['summary'] = t['summary'].encode('utf-8')
+            print(args.todo_template.format(**t))
 
 def main():
     """
@@ -377,8 +409,15 @@ def main():
     todo_add_parser = todo_subparsers.add_parser('add')
     todo_add_parser.add_argument('description', nargs='+')
     #todo_add_parser.add_argument('--due-date', ....)
-    #todo_add_parser.add_argument('--priority', ....)
+    #todo_add_parser.add_argument('--priority', ....) 
     todo_add_parser.set_defaults(func=todo_add)
+    
+    todo_list_parser = todo_subparsers.add_parser('list')
+    #todo_list_parser.add_argument('--sort-by', ....)
+    #todo_list_parser.add_argument('--due-before', ....)
+    todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{due} {summary}")
+    todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
+    todo_list_parser.set_defaults(func=todo_list)
 
     calendar_parser = subparsers.add_parser('calendar')
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')

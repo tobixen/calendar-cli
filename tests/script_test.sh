@@ -46,7 +46,7 @@ calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=4
 echo $output | { grep -q 'testing testing' && echo "## OK: found the event" ; } || echo "## FAIL: didn't find the event"
 
 echo "## Taking out the agenda for 2010-10-10, with uid"
-calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dstart_sql} {uid}'
+calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dstart} {uid}'
 echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || echo "## FAIL: didn't find the UID"
 
 echo "## Deleting events with uid $uid $uid1 $uid2"
