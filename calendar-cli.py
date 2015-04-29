@@ -343,7 +343,9 @@ def todo_select(caldav_conn, args):
     if args.todo_uid:
         tasks = find_calendar(caldav_conn, args).object_by_uid(args.todo_uid)
     else:
-        tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
+        ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute
+        #tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
+        tasks = find_calendar(caldav_conn, args).todos()
     if args.top:
         tasks = tasks[0:args.top]
     return tasks
