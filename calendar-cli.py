@@ -150,7 +150,7 @@ def interactive_config(args, config, remaining_argv):
     if not section in config:
         config[section] = {}
 
-    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'language', 'timezone'):
+    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'language', 'timezone', 'inherits'):
         print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
         value = raw_input("Enter new value (or just enter to keep the old): ")
         if value:
@@ -316,38 +316,49 @@ def calendar_agenda(caldav_conn, args):
             print(ical.data)
     else:
         ## flatten. A recurring event may be a list of events.
+        ## jeez ... zimbra and DaviCal does completely different things here
+        ## (wonder if we ought to push some logic over to the caldav library)
         for event_cal in events_:
-            for event in event_cal.instance.components():
-                dtstart = event.dtstart.value
-                if not isinstance(dtstart, datetime):
-                    dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
-                if not dtstart.tzinfo:
-                    dtstart = args.timezone.localize(dtstart)
-                events.append({'dtstart': dtstart, 'instance': event})
+            if hasattr(event_cal.instance, 'vcalendar'):
+                events__ = event_cal.instance.components()
+            elif hasattr(event_cal.instance, 'vevent'):
+                events__ = [ event_cal.instance.vevent ]
+            else:
+                raise Exception("Panic")
+            for event in events__:
+                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else datetime.now()
+                    if not isinstance(dtstart, datetime):
+                        dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
+                    if not dtstart.tzinfo:
+                        dtstart = args.timezone.localize(dtstart)
+                    events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
             event['dstart'] = event['dtstart'].strftime(args.timestamp_format)
-            for summary_attr in ('summary', 'location'):
+            event['description'] = "(no description)"
+            for summary_attr in ('summary', 'location', 'description'):
                 if hasattr(event['instance'], summary_attr):
                     event['description'] = getattr(event['instance'], summary_attr).value
                     break
-            event['uid'] = event['instance'].uid.value
+            event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
             ## TODO: this will probably break and is probably moot on python3?
             if hasattr(event['description'], 'encode'):
                 event['description'] = event['description'].encode('utf-8')
             print(args.event_template.format(**event))
 
 def todo_select(caldav_conn, args):
-    if args.top and args.todo_uid:
-        raise ValueError("It doesn't make sense to combine --todo-uid with --top")
+    if args.top+args.limit+args.offset+args.offsetn and args.todo_uid:
+        raise ValueError("It doesn't make sense to combine --todo-uid with --top/--limit/--offset/--offsetn")
     if args.todo_uid:
         tasks = find_calendar(caldav_conn, args).object_by_uid(args.todo_uid)
     else:
         ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute
         #tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
         tasks = find_calendar(caldav_conn, args).todos()
-    if args.top:
-        tasks = tasks[0:args.top]
+    if args.top+args.limit:
+        tasks = tasks[args.offset+args.offsetn:args.top+args.limit+args.offset+args.offsetn]
+    elif args.offset+args.offsetn:
+        tasks = tasks[args.offset+args.offsetn:]
     return tasks
 
 def todo_postpone(caldav_conn, args):
@@ -402,7 +413,7 @@ def todo_list(caldav_conn, args):
             t = {'instance': task}
             t['dtstart'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()
             t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart']) <= datetime.now() else ' '
-            t['due'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
+            t['due'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()+timedelta(365)
             t['due_passed_mark'] = '!' if _force_datetime(t['due']) < datetime.now() else ' '
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
@@ -421,6 +432,14 @@ def todo_complete(caldav_conn, args):
     for task in tasks:
         task.complete()
 
+def config_section(config, section='default'):
+    if 'inherits' in config[section]:
+        ret = config_section(config, config[section]['inherits'])
+    else:
+        ret = {}
+    ret.update(config[section])
+    return ret
+    
 def main():
     """
     the main function does (almost) nothing but parsing command line parameters
@@ -466,7 +485,7 @@ def main():
         if not remaining_argv:
             return
     else:
-        defaults = config.get(args.config_section, {})
+        defaults = config_section(config, args.config_section)
 
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
@@ -493,7 +512,10 @@ def main():
 
     ## Tasks
     todo_parser = subparsers.add_parser('todo')
-    todo_parser.add_argument('--top', '-1', action='count')
+    todo_parser.add_argument('--top', '-1', action='count', default=0)
+    todo_parser.add_argument('--offset', action='count', default=0)
+    todo_parser.add_argument('--offsetn', type=int, default=0)
+    todo_parser.add_argument('--limit', type=int, default=0)
     todo_parser.add_argument('--todo-uid')
     #todo_parser.add_argument('--priority', ....) 
     #todo_parser.add_argument('--sort-by', ....)
