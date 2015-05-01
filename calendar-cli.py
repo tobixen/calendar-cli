@@ -43,6 +43,9 @@ time_units = {
     'd': 86400, 'w': 604800, 'y': 31536000
 }
 
+vtodo_txt_one = ['location', 'description', 'geo', 'organizer', 'summary']
+vtodo_txt_many = ['categories', 'comment', 'contact', 'resources']
+
 def niy(*args, **kwargs):
     if 'feature' in kwargs:
         raise NotImplementedError("This feature is not implemented yet: %(feature)s" % kwargs)
@@ -352,15 +355,44 @@ def todo_select(caldav_conn, args):
     if args.todo_uid:
         tasks = find_calendar(caldav_conn, args).object_by_uid(args.todo_uid)
     else:
-        ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute
-        #tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
-        tasks = find_calendar(caldav_conn, args).todos()
+        ## TODO: we're fetching everything from the server, and then doing the filtering here.  It would be better to let the server do the filtering, though that requires library modifications.
+        ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute.  The try-except construct should be removed at some point in the future, when caldav 0.5 is released.
+        try:
+            tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
+        except:
+            tasks = find_calendar(caldav_conn, args).todos()
+    for attr in vtodo_txt_one + vtodo_txt_many: ## TODO: now we have _exact_ match on items in the the array attributes, and substring match on items that cannot be duplicated.  Does that make sense?  Probably not.
+        if getattr(args, attr):
+            tasks = [x for x in tasks if hasattr(x.instance.vtodo, attr) and getattr(args, attr) in getattr(x.instance.vtodo, attr).value]
     if args.top+args.limit:
         tasks = tasks[args.offset+args.offsetn:args.top+args.limit+args.offset+args.offsetn]
     elif args.offset+args.offsetn:
         tasks = tasks[args.offset+args.offsetn:]
     return tasks
 
+def todo_edit(caldav_conn, args):
+    tasks = todo_select(caldav_conn, args)
+    for task in tasks:
+        ## TODO: code duplication - can we refactor this?
+        for attr in vtodo_txt_one:
+            if getattr(args, 'set_'+attr):
+                if not hasattr(task.instance.vtodo, attr):
+                    task.instance.vtodo.add(attr)
+                getattr(task.instance.vtodo, attr).value = getattr(args, 'set_'+attr)
+        for attr in vtodo_txt_many:
+            if getattr(args, 'set_'+attr):
+                if not hasattr(task.instance.vtodo, attr):
+                    task.instance.vtodo.add(attr)
+                getattr(task.instance.vtodo, attr).value = [ getattr(args, 'set_'+attr) ]
+        for attr in vtodo_txt_many:
+            if getattr(args, 'add_'+attr):
+                if not hasattr(task.instance.vtodo, attr):
+                    task.instance.vtodo.add(attr)
+                    getattr(task.instance.vtodo, attr).value = []
+                getattr(task.instance.vtodo, attr).value.append(getattr(args, 'add_'+attr))
+        task.save()
+        
+    
 def todo_postpone(caldav_conn, args):
     if args.nocaldav:
         raise ValueError("No caldav connection, aborting")
@@ -378,11 +410,12 @@ def todo_postpone(caldav_conn, args):
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
         if new_ts:
-            if not hasattr(task.instance.vtodo, 'dtstart'):
-                task.instance.vtodo.add('dtstart')
-            task.instance.vtodo.dtstart.value = new_ts
+            attr = 'due' if args.due else 'dtstart'
+            if not hasattr(task.instance.vtodo, attr):
+                task.instance.vtodo.add(attr)
+            getattr(task.instance.vtodo, attr).value = new_ts
         if rel_skew:
-            if hasattr(task.instance.vtodo, 'dtstart'):
+            if not args.due and hasattr(task.instance.vtodo, 'dtstart'):
                 task.instance.vtodo.dtstart.value += rel_skew
             elif hasattr(task.instance.vtodo, 'due'):
                 task.instance.vtodo.due.value += rel_skew
@@ -407,13 +440,13 @@ def todo_list(caldav_conn, args):
     tasks = todo_select(caldav_conn, args)
     if args.icalendar:
         for ical in tasks:
-            print(ical.data)
+            print(ical.data.encode('utf-8'))
     else:
         for task in tasks:
             t = {'instance': task}
             t['dtstart'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()
             t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart']) <= datetime.now() else ' '
-            t['due'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()+timedelta(365)
+            t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
             t['due_passed_mark'] = '!' if _force_datetime(t['due']) < datetime.now() else ' '
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
@@ -517,6 +550,10 @@ def main():
     todo_parser.add_argument('--offsetn', type=int, default=0)
     todo_parser.add_argument('--limit', type=int, default=0)
     todo_parser.add_argument('--todo-uid')
+
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        todo_parser.add_argument('--'+attr, help="for filtering - when adding new tasks, add this attribute")
+    
     #todo_parser.add_argument('--priority', ....) 
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
@@ -531,9 +568,17 @@ def main():
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
     todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
     todo_list_parser.set_defaults(func=todo_list)
-    
+
+    todo_edit_parser = todo_subparsers.add_parser('edit')
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        todo_edit_parser.add_argument('--set-'+attr, help="Set "+attr)
+    for attr in vtodo_txt_many:
+        todo_edit_parser.add_argument('--add-'+attr, help="Add an "+attr)
+    todo_edit_parser.set_defaults(func=todo_edit)
+
     todo_postpone_parser = todo_subparsers.add_parser('postpone')
-    todo_postpone_parser.add_argument('until', help="either a new date or +interval to add some interval to the existing time, or a @+interval to set the time to a new time relative to the current time.  interval is a number postfixed with a one character unit (any of smhdwy).  If the todo-item has a dstart, this field will be modified, else the due timestamp will be modified.  If both timestamps exists and dstart will be moved beyond the due time, the due time will be set to dtime+duration")
+    todo_postpone_parser.add_argument('until', help="either a new date or +interval to add some interval to the existing time, or i.e. 'in 3d' to set the time to a new time relative to the current time.  interval is a number postfixed with a one character unit (any of smhdwy).  If the todo-item has a dstart, this field will be modified, else the due timestamp will be modified.    If both timestamps exists and dstart will be moved beyond the due time, the due time will be set to dtime.")
+    todo_postpone_parser.add_argument('--due', help="move the due, not the dtstart", action='store_true')
     todo_postpone_parser.set_defaults(func=todo_postpone)
 
     todo_complete_parser = todo_subparsers.add_parser('complete')

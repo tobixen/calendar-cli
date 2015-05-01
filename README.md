@@ -18,7 +18,7 @@ GUIs and Web-UIs are nice for some purposes, but I really find the command line 
 * Minor stuff that are repeated often.  Writing something like "todo add make a calendar-cli system" or "cal add 'tomorrow 15:40+2h' doctor appointment" is just very much faster than navigating into some web calendar interface and add an item there.
 * Things that are outside the scope of the UI.  Here is one of many tasks I'd like to do: "go through the work calendar, find all new calendar events that are outside office hours, check up with the personal calendar if there are potential conflicts, add some information at the personal calendar if appropriate", and vice versa - it has to be handled very manually if doing it through any normal calendar application as far as I know, but if having some simple CLI or python library I could easily make some interactive script that would help me doing the operation above.
 
-I've been looking a bit around, all I could find was cadaver and CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation.  CalDAVClientLibrary is already a python library, and there also exist python libraries for iCalendar parsing/generation, so all that seems to be missing is the "glue" between those libraries.  Or, eventually, not.  After some problems I decided to ditch CalDAVClientLibrary.
+I've been looking a bit around, all I could find was cadaver and CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation.  CalDAVClientLibrary is already a python library, and there also exist python libraries for iCalendar parsing/generation, so all that seems to be missing is the "glue" between those libraries.  Or, eventually, not.  After some problems I decided to ditch CalDAVClientLibrary, now I'm using the caldav library instead.
 
 Synopsis
 --------
@@ -65,7 +65,7 @@ All of those would eventually be supported in future versions if it's not too di
 * Two ISO timestamps separated by a dash (-)
 * ISO dates without times (default duration will be one day, for two dates full days up to and including the end date is counted)
 * "tomorrow" instead of an ISO date
-* weekday instead of an ISO date
+* weekday instead of an ISO date (this seems supported already by dateutil.parser.parse)
 * clock time without the date; event will be assumed to start within 24 hours.
 
 Alternatively, endtime or duration can be given through options (not supported as of 0.9)
