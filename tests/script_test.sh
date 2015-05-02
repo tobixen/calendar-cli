@@ -26,6 +26,8 @@ calendar_cli() {
 
 ## TESTING
 
+## EVENTS
+
 echo "## testing $calendar_cli"
 echo "## this is a very simple test script without advanced error handling"
 echo "## if this test script doesn't output 'all tests completed' in the end, something went wrong"
@@ -56,5 +58,32 @@ calendar_cli calendar delete --event-uid=$uid3
 echo "## Searching again for the deleted event"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1
 echo $output | { grep -q 'testing testing' && echo "## FAIL: still found the event" ; } || echo "## OK: didn't find the event"
+
+## TODOS / TASK LISTS
+
+echo "## Attempting to add a task with category 'scripttest'"
+calendar_cli todo add --set-categories scripttest "edit this task"
+uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+
+echo "## Listing out all tasks with category set to 'scripttest'"
+calendar_cli todo --categories scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just added and nothing more"
+
+echo "## Editing the task"
+calendar_cli todo --categories scripttest edit --set-comment "editing" --add-categories "scripttest2"
+
+echo "## Verifying that the edits got through"
+calendar_cli todo --categories scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+calendar_cli todo --categories scripttest2 list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+calendar_cli todo --comment editing list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+
+echo "## Complete the task"
+calendar_cli todo --categories scripttest complete
+calendar_cli todo --categories scripttest list
+[ -z "$output" ] && echo "## OK: todo-item is done"
+calendar_cli todo --todo-uid $todouid1 delete
 
 echo "## all tests completed"

@@ -16,7 +16,7 @@ import os
 import logging
 import sys
 
-__version__ = "0.7"
+__version__ = "0.10"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -228,7 +228,7 @@ def calendar_add(caldav_conn, args):
     ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
-    event.add('summary', ' '.join(args.description))
+    event.add('summary', ' '.join(args.summary))
     cal.add_component(event)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added event with uid=%s" % uid)
@@ -276,10 +276,10 @@ def todo_add(caldav_conn, args):
     cal.add('version', '2.0')
     todo = Todo()
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
-    ## TODO: not really correct, and it breaks i.e. with google calendar
+    ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
     todo.add('dtstamp', datetime.now())
 
-    for arg in ('due', 'dtstart'):
+    for arg in ('set_due', 'set_dtstart'):
         if getattr(args, arg):
             if type(getattr(args, arg)) == str:
                 val = dateutil.parser.parse(getattr(args, arg))
@@ -287,8 +287,14 @@ def todo_add(caldav_conn, args):
                 val = getattr(args, arg)
         todo.add(arg, val)
     todo.add('uid', str(uid))
-    todo.add('summary', args.description)
+    todo.add('summary', ' '.join(args.summaryline))
     todo.add('status', 'NEEDS-ACTION')
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        if attr == 'summary':
+            continue
+        val = getattr(args, 'set_'+attr)
+        if val:
+            todo.add(attr, val)
     cal.add_component(todo)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added todo item with uid=%s" % uid)
@@ -338,22 +344,22 @@ def calendar_agenda(caldav_conn, args):
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
             event['dstart'] = event['dtstart'].strftime(args.timestamp_format)
-            event['description'] = "(no description)"
+            event['summary'] = "(no description)"
             for summary_attr in ('summary', 'location', 'description'):
                 if hasattr(event['instance'], summary_attr):
-                    event['description'] = getattr(event['instance'], summary_attr).value
+                    event['summary'] = getattr(event['instance'], summary_attr).value
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
             ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(event['description'], 'encode'):
-                event['description'] = event['description'].encode('utf-8')
+            if hasattr(event['summary'], 'encode'):
+                event['summary'] = event['summary'].encode('utf-8')
             print(args.event_template.format(**event))
 
 def todo_select(caldav_conn, args):
     if args.top+args.limit+args.offset+args.offsetn and args.todo_uid:
         raise ValueError("It doesn't make sense to combine --todo-uid with --top/--limit/--offset/--offsetn")
     if args.todo_uid:
-        tasks = find_calendar(caldav_conn, args).object_by_uid(args.todo_uid)
+        tasks = [ find_calendar(caldav_conn, args).object_by_uid(args.todo_uid) ]
     else:
         ## TODO: we're fetching everything from the server, and then doing the filtering here.  It would be better to let the server do the filtering, though that requires library modifications.
         ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute.  The try-except construct should be removed at some point in the future, when caldav 0.5 is released.
@@ -465,6 +471,13 @@ def todo_complete(caldav_conn, args):
     for task in tasks:
         task.complete()
 
+def todo_delete(caldav_conn, args):
+    if args.nocaldav:
+        raise ValueError("No caldav connection, aborting")
+    tasks = todo_select(caldav_conn, args)
+    for task in tasks:
+        task.delete()
+        
 def config_section(config, section='default'):
     if 'inherits' in config[section]:
         ret = config_section(config, config[section]['inherits'])
@@ -552,16 +565,19 @@ def main():
     todo_parser.add_argument('--todo-uid')
 
     for attr in vtodo_txt_one + vtodo_txt_many:
-        todo_parser.add_argument('--'+attr, help="for filtering - when adding new tasks, add this attribute")
+        todo_parser.add_argument('--'+attr, help="for filtering tasks")
     
     #todo_parser.add_argument('--priority', ....) 
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
     todo_add_parser = todo_subparsers.add_parser('add')
-    todo_add_parser.add_argument('description', nargs='+')
-    todo_add_parser.add_argument('--due', default=date.today()+timedelta(7))
-    todo_add_parser.add_argument('--dtstart', default=date.today()+timedelta(1))
+    todo_add_parser.add_argument('summaryline', nargs='+')
+    todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(7))
+    todo_add_parser.add_argument('--set-dtstart', default=date.today()+timedelta(1))
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        if attr != 'summary':
+            todo_add_parser.add_argument('--set-'+attr, help="Set "+attr)
     todo_add_parser.set_defaults(func=todo_add)
     
     todo_list_parser = todo_subparsers.add_parser('list')
@@ -583,12 +599,15 @@ def main():
 
     todo_complete_parser = todo_subparsers.add_parser('complete')
     todo_complete_parser.set_defaults(func=todo_complete)
+
+    todo_delete_parser = todo_subparsers.add_parser('delete')
+    todo_delete_parser.set_defaults(func=todo_delete)
     
     calendar_parser = subparsers.add_parser('calendar')
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
-    calendar_add_parser.add_argument('description', nargs='+')
+    calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
     calendar_addics_parser = calendar_subparsers.add_parser('addics')
     calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
@@ -599,7 +618,7 @@ def main():
     calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
-    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart} {description}")
+    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart} {summary}")
     calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F %H:%M (%a)")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 

@@ -18,18 +18,18 @@ GUIs and Web-UIs are nice for some purposes, but I really find the command line 
 * Minor stuff that are repeated often.  Writing something like "todo add make a calendar-cli system" or "cal add 'tomorrow 15:40+2h' doctor appointment" is just very much faster than navigating into some web calendar interface and add an item there.
 * Things that are outside the scope of the UI.  Here is one of many tasks I'd like to do: "go through the work calendar, find all new calendar events that are outside office hours, check up with the personal calendar if there are potential conflicts, add some information at the personal calendar if appropriate", and vice versa - it has to be handled very manually if doing it through any normal calendar application as far as I know, but if having some simple CLI or python library I could easily make some interactive script that would help me doing the operation above.
 
-I've been looking a bit around, all I could find was cadaver and CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation.  CalDAVClientLibrary is already a python library, and there also exist python libraries for iCalendar parsing/generation, so all that seems to be missing is the "glue" between those libraries.  Or, eventually, not.  After some problems I decided to ditch CalDAVClientLibrary, now I'm using the caldav library instead.
+I've been looking a bit around, all I could find was cadaver and CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation, and there are things that simply cannot be done through those tools.
 
 Synopsis
 --------
 
     calendar-cli.py [global options] [command] [command options] [subcommand] [subcommand options] [subcommand arguments] ...
 
-I'm intending to make it easier by allowing calendar-cli.py to be symlinked to the various commands.
+I'm intending to make it easier by allowing calendar-cli.py to be symlinked to the various commands and also to allow the options to be placed wherever.
 
 ### Global options
 
-Only long options will be available up until version 0.10; I don't
+Only long options will be available in the early versions; I don't
 want to pollute the short option space before the CLI is reasonably
 well-defined.
 
@@ -46,16 +46,14 @@ not be up-to-date and may contain features not implemented yet.
 
 ### Commands
 
-* cal - access/modify a calendar
-    * subcommands: add, addics (for uploading events in ical format), agenda
+* calendar - access/modify a calendar
+    * subcommands: add, addics (for uploading events in ical format), agenda, delete
 * todo - access/modify a todo-list
-    * subcommands: add, agenda
-
-(only "cal add" and "cal addics" works as of v0.06 / 2013-12-02)
+    * subcommands: add, list, edit, postpone, complete, delete
 
 ### Event time specification
 
-Supported in v0.9:
+Supported in v0.8:
 
 * anything recognized by dateutil.parser.parse()
 * An iso time stamp, followed with the duration, using either + or space as separator.  Duration is a number postfixed by s for seconds, m for minutes, h for hours, d for days, w for weeks and y for years (i.e. 2013-09-10T13:37+30d)
@@ -122,15 +120,17 @@ Changelog
 * 2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
 * 2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
 * 2015-03-30: version 0.9 - now it's possible to set a duration when adding events to the calendar.
+* 2015-05-02: version 0.10 - added support for todo subcommand
 
 Roadmap
 -------
+This is being moved out to the issues section in github.
+
 * Allow pulling out an agenda for all calendars at once (though, with the current design it's so much easier to do it through a bash loop rather than in the python code, so this is postponed for a while)
 * Allow specification of event duration and/or event end time through options
-* CLI-interface for creating ical todo events
 * Fix easy-to-use symlinks (or alternatively wrapper scripts)
 * Make some nosetests
 
 Donations
 ---------
-Donations are not expected, but as long as this is a one-man hobby project at least it's not problematic to receive donations.  Send bitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
+Donations are not expected, but as long as this is a one-man hobby project at least it's not problematic to receive donations.  Send millibitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
