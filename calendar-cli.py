@@ -269,8 +269,6 @@ def todo_add(caldav_conn, args):
         uid = args.todo_uid
     else:
         uid = uuid.uuid1()
-    if args.top:
-        raise ValueError("incompatible option --top to command todo add")
     cal = Calendar()
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
@@ -289,6 +287,15 @@ def todo_add(caldav_conn, args):
     todo.add('uid', str(uid))
     todo.add('summary', ' '.join(args.summaryline))
     todo.add('status', 'NEEDS-ACTION')
+
+    if args.is_child:
+        for t in todo_select(caldav_conn, args):
+            todo.add('related-to', t.instance.vtodo.uid.value)
+            rt = t.instance.vtodo.add('related-to')
+            rt.params['RELTYPE']=['CHILD']
+            rt.value = str(uid)
+            t.save()
+    
     for attr in vtodo_txt_one + vtodo_txt_many:
         if attr == 'summary':
             continue
@@ -396,6 +403,10 @@ def todo_edit(caldav_conn, args):
                     task.instance.vtodo.add(attr)
                     getattr(task.instance.vtodo, attr).value = []
                 getattr(task.instance.vtodo, attr).value.append(getattr(args, 'add_'+attr))
+        if args.pdb:
+            import pdb; pdb.set_trace()
+            ## you may now access task.data to edit the raw ical, or
+            ## task.instance.vtodo to edit a vobject instance
         task.save()
         
     
@@ -447,6 +458,13 @@ def todo_list(caldav_conn, args):
     if args.icalendar:
         for ical in tasks:
             print(ical.data.encode('utf-8'))
+    elif args.list_categories:
+        categories = set()
+        for task in tasks:
+            if hasattr(task.instance.vtodo, 'categories'):
+                categories.update(task.instance.vtodo.categories.value)
+        for c in categories:
+            print(c)
     else:
         for task in tasks:
             t = {'instance': task}
@@ -575,6 +593,7 @@ def main():
     todo_add_parser.add_argument('summaryline', nargs='+')
     todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(7))
     todo_add_parser.add_argument('--set-dtstart', default=date.today()+timedelta(1))
+    todo_add_parser.add_argument('--is-child', help="the new task is a child-task of the selected task(s)", action='store_true')
     for attr in vtodo_txt_one + vtodo_txt_many:
         if attr != 'summary':
             todo_add_parser.add_argument('--set-'+attr, help="Set "+attr)
@@ -583,6 +602,7 @@ def main():
     todo_list_parser = todo_subparsers.add_parser('list')
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
     todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
+    todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
     todo_list_parser.set_defaults(func=todo_list)
 
     todo_edit_parser = todo_subparsers.add_parser('edit')
@@ -590,6 +610,7 @@ def main():
         todo_edit_parser.add_argument('--set-'+attr, help="Set "+attr)
     for attr in vtodo_txt_many:
         todo_edit_parser.add_argument('--add-'+attr, help="Add an "+attr)
+    todo_edit_parser.add_argument('--pdb', help='Allow interactive edit through the python debugger', action='store_true')
     todo_edit_parser.set_defaults(func=todo_edit)
 
     todo_postpone_parser = todo_subparsers.add_parser('postpone')
