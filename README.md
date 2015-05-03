@@ -1,7 +1,7 @@
 calendar-cli
 ============
 
-Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc
+Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.  As of version 0.11 it's even becoming a full-fledged task management tool.
 
 There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage.
 
