@@ -277,13 +277,13 @@ def todo_add(caldav_conn, args):
     ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
     todo.add('dtstamp', datetime.now())
 
-    for arg in ('set_due', 'set_dtstart'):
-        if getattr(args, arg):
-            if type(getattr(args, arg)) == str:
-                val = dateutil.parser.parse(getattr(args, arg))
+    for setarg in ('due', 'dtstart'):
+        if getattr(args, 'set_'+setarg):
+            if type(getattr(args, 'set_'+setarg)) == str:
+                val = dateutil.parser.parse(getattr(args, 'set_'+setarg))
             else:
-                val = getattr(args, arg)
-        todo.add(arg, val)
+                val = getattr(args, 'set_'+setarg)
+        todo.add(setarg, val)
     todo.add('uid', str(uid))
     todo.add('summary', ' '.join(args.summaryline))
     todo.add('status', 'NEEDS-ACTION')
