@@ -377,7 +377,7 @@ def todo_select(caldav_conn, args):
     for attr in vtodo_txt_one + vtodo_txt_many: ## TODO: now we have _exact_ match on items in the the array attributes, and substring match on items that cannot be duplicated.  Does that make sense?  Probably not.
         if getattr(args, attr):
             tasks = [x for x in tasks if hasattr(x.instance.vtodo, attr) and getattr(args, attr) in getattr(x.instance.vtodo, attr).value]
-    if args.hide_parents:
+    if args.hide_parents or args.hide_children:
         tasks_by_uid = {}
         for task in tasks:
             tasks_by_uid[task.instance.vtodo.uid.value] = task
@@ -386,9 +386,11 @@ def todo_select(caldav_conn, args):
                 uid = task.instance.vtodo.uid.value
                 rel_uid = task.instance.vtodo.related_to.value
                 rel_type = task.instance.vtodo.related_to.params.get('RELTYPE', 'PARENT')
-                if rel_type == 'CHILD' and rel_uid in tasks_by_uid and uid in tasks_by_uid:
+                if ((rel_type == 'CHILD' and args.hide_parents) or (rel_type == 'PARENT' and args.hide_children)) and \
+                   rel_uid in tasks_by_uid and uid in tasks_by_uid:
                     del tasks_by_uid[uid]
-                if rel_type == 'PARENT' and rel_uid in tasks_by_uid:
+                if ((rel_type == 'PARENT' and args.hide_parents) or (rel_type == 'CHILD' and args.hide_children)) and \
+                   rel_uid in tasks_by_uid:
                     del tasks_by_uid[rel_uid]
         tasks = [x for x in tasks if x.instance.vtodo.uid.value in tasks_by_uid]
     if args.top+args.limit:
@@ -596,6 +598,7 @@ def main():
     todo_parser.add_argument('--limit', type=int, default=0)
     todo_parser.add_argument('--todo-uid')
     todo_parser.add_argument('--hide-parents', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
+    todo_parser.add_argument('--hide-children', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
 
     for attr in vtodo_txt_one + vtodo_txt_many:
         todo_parser.add_argument('--'+attr, help="for filtering tasks")
