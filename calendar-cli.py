@@ -8,7 +8,7 @@ import tzlocal
 import time
 from datetime import datetime, timedelta, date
 import dateutil.parser
-from icalendar import Calendar,Event,Todo
+from icalendar import Calendar,Event,Todo,Journal
 import caldav
 import uuid
 import json
@@ -261,6 +261,24 @@ def calendar_delete(caldav_conn, args):
         raise ValueError("Event deletion failed: either uid, url or timestamp is needed")
     event.delete()
 
+def journal_add(caldav_conn, args):
+    ## TODO: copied from todo_add, should probably be consolidated
+    cal = Calendar()
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('version', '2.0')
+    journal = Journal()
+    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
+    ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
+    journal.add('dtstamp', datetime.now())
+    journal.add('dtstart', date.today())
+    journal.add('summary', ' '.join(args.summaryline))
+    uid = uuid.uuid1()
+    journal.add('uid', str(uid))
+    cal.add_component(journal)
+    _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
+    print("Added journal item with uid=%s" % uid)
+    ## FULL STOP - should do some major refactoring before doing more work here!
+    
 def todo_add(caldav_conn, args):
     ## TODO: copied from calendar_add, should probably be consolidated
     if args.icalendar or args.nocaldav:
@@ -641,7 +659,14 @@ def main():
 
     todo_delete_parser = todo_subparsers.add_parser('delete')
     todo_delete_parser.set_defaults(func=todo_delete)
-    
+
+    ## journal
+    journal_parser = subparsers.add_parser('journal')
+    journal_subparsers = journal_parser.add_subparsers(title='tasks subcommand')
+    journal_add_parser = journal_subparsers.add_parser('add')
+    journal_add_parser.add_argument('summaryline', nargs='+')
+    journal_add_parser.set_defaults(func=journal_add)
+
     calendar_parser = subparsers.add_parser('calendar')
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
