@@ -1,6 +1,8 @@
 #!/usr/bin/python2
 
 ## (the icalendar library is not ported to python3?)
+## (also, the caldav library depends on the vobject library which is not officially ported to python3 as of 2015-05)
+## (vobject and icalendar are quite overlapping libraries)
 
 import argparse
 import pytz
@@ -16,7 +18,7 @@ import os
 import logging
 import sys
 
-__version__ = "0.10"
+__version__ = "0.11.0-dev"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013, Tobias Brox"
@@ -27,14 +29,30 @@ __author_email__ = "t-calendar-cli@tobixen.no"
 __status__ = "Development"
 __product__ = "calendar-cli"
 
-def _force_datetime(t):
+def _force_datetime(t, args):
     """
     date objects cannot be compared with timestamp objects, neither in python2 nor python3.  Silly.
+    also, objects with time zone info cannot be compared with timestamps without time zone info.
+    and both datetime.now() and datetime.utcnow() seems to be without those bits.  Silly.
     """
     if type(t) == date:
-        return datetime(t.year, t.month, t.day)
+        t = datetime(t.year, t.month, t.day)
+    if t.tzinfo is None:
+        return t.replace(tzinfo=_tz(args))
+    return t
+
+def _now():
+    """
+    python datetime is ... crap!
+    """
+    return datetime.utcnow().replace(tzinfo=pytz.utc)
+
+def _tz(args):
+    if args.timezone:
+        return pytz.timezone(args.timezone)
     else:
-        return t
+        return tzlocal.get_localzone()
+
 
 ## global constant
 ## (todo: this doesn't really work out that well, leap seconds/days are not considered, and we're missing the month unit)
@@ -224,7 +242,7 @@ def calendar_add(caldav_conn, args):
     event.add('dtend', dtstart + timedelta(0,event_duration_secs))
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## not really correct, and it breaks i.e. with google calendar
-    event.add('dtstamp', datetime.now())
+    event.add('dtstamp', _now())
     ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
@@ -275,7 +293,7 @@ def todo_add(caldav_conn, args):
     todo = Todo()
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
-    todo.add('dtstamp', datetime.now())
+    todo.add('dtstamp', _now())
 
     for setarg in ('due', 'dtstart'):
         if getattr(args, 'set_'+setarg):
@@ -316,7 +334,7 @@ def calendar_agenda(caldav_conn, args):
     if args.from_time:
         dtstart = dateutil.parser.parse(args.from_time)
     else:
-        dtstart = datetime.now()
+        dtstart = _now()
     if args.to_time:
         dtend = dateutil.parser.parse(args.to_time)
     elif args.agenda_mins:
@@ -342,11 +360,11 @@ def calendar_agenda(caldav_conn, args):
             else:
                 raise Exception("Panic")
             for event in events__:
-                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else datetime.now()
+                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                     if not isinstance(dtstart, datetime):
                         dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                     if not dtstart.tzinfo:
-                        dtstart = args.timezone.localize(dtstart)
+                        dtstart = _tz(args).localize(dtstart)
                     events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
@@ -377,6 +395,8 @@ def todo_select(caldav_conn, args):
     for attr in vtodo_txt_one + vtodo_txt_many: ## TODO: now we have _exact_ match on items in the the array attributes, and substring match on items that cannot be duplicated.  Does that make sense?  Probably not.
         if getattr(args, attr):
             tasks = [x for x in tasks if hasattr(x.instance.vtodo, attr) and getattr(args, attr) in getattr(x.instance.vtodo, attr).value]
+        if getattr(args, 'no'+attr):
+            tasks = [x for x in tasks if not hasattr(x.instance.vtodo, attr)]
     if args.hide_parents or args.hide_children:
         tasks_by_uid = {}
         for task in tasks:
@@ -434,7 +454,7 @@ def todo_postpone(caldav_conn, args):
     if args.until.startswith('+'):
         rel_skew = timedelta(seconds=int(args.until[1:-1])*time_units[args.until[-1]])
     elif args.until.startswith('in'):
-        new_ts = datetime.now()+timedelta(seconds=int(args.until[2:-1])*time_units[args.until[-1]])
+        new_ts = _now()+timedelta(seconds=int(args.until[2:-1])*time_units[args.until[-1]])
     else:
         new_ts = dateutil.parser.parse(args.until)
         if not new_ts.time():
@@ -485,9 +505,9 @@ def todo_list(caldav_conn, args):
         for task in tasks:
             t = {'instance': task}
             t['dtstart'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()
-            t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart']) <= datetime.now() else ' '
+            t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart'], args) <= _now() else ' '
             t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
-            t['due_passed_mark'] = '!' if _force_datetime(t['due']) < datetime.now() else ' '
+            t['due_passed_mark'] = '!' if _force_datetime(t['due'], args) < _now() else ' '
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
@@ -602,7 +622,10 @@ def main():
 
     for attr in vtodo_txt_one + vtodo_txt_many:
         todo_parser.add_argument('--'+attr, help="for filtering tasks")
-    
+
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        todo_parser.add_argument('--no'+attr, help="for filtering tasks", action='store_true')
+        
     #todo_parser.add_argument('--priority', ....) 
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
@@ -669,11 +692,6 @@ def main():
 
     args = parser.parse_args(remaining_argv)
 
-    if args.timezone:
-        args.timezone = pytz.timezone(args.timezone)
-    else:
-        args.timezone = tzlocal.get_localzone()
-        
     if not args.nocaldav:
         caldav_conn = caldav_connect(args)
 
