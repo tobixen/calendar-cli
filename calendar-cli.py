@@ -526,6 +526,8 @@ def todo_list(caldav_conn, args):
             t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart'], args) <= _now() else ' '
             t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
             t['due_passed_mark'] = '!' if _force_datetime(t['due'], args) < _now() else ' '
+            for timeattr in ('dtstart', 'due'):
+                t[timeattr] = t[timeattr].strftime(args.timestamp_format)
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
@@ -662,6 +664,7 @@ def main():
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
     todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
     todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
+    todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F (%a)")
     todo_list_parser.set_defaults(func=todo_list)
 
     todo_edit_parser = todo_subparsers.add_parser('edit')
