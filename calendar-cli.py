@@ -8,6 +8,7 @@ import tzlocal
 import time
 from datetime import datetime, timedelta, date
 import dateutil.parser
+from dateutil.rrule import rrulestr
 from icalendar import Calendar,Event,Todo,Journal
 import caldav
 import uuid
@@ -521,7 +522,21 @@ def todo_complete(caldav_conn, args):
         raise ValueError("No caldav connection, aborting")
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
+        if hasattr(task.instance.vtodo, 'rrule'):
+            rrule = rrulestr(task.instance.vtodo.rrule.value)
+            try:
+                next = rrule.after(datetime.now())
+            except TypeError: ## pesky problem with comparition of timestamps with and without tzinfo
+                next = rrule.after(datetime.now(tz=tzlocal.get_localzone()))
+            import pdb; pdb.set_trace()
+            ## WORK IN PROGRESS
+            ## task.rrule.count - decrease it?
+            ## new_task should be a copy of task
+            ## set new_task.rrule_id or whatnot
+            ## delete new_task.rrule
+            ## new_task should be completed, old task should not.
         task.complete()
+            
 
 def todo_delete(caldav_conn, args):
     if args.nocaldav:
