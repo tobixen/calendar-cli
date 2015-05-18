@@ -5,10 +5,12 @@ While the RFC does draw some lines on what fields are admissable in the todo-ent
 
 As of 2015-04, this document is just a collection of random thoughts on how to organize task lists.  I haven't done much research in how different software packages handles tasks, nor do I have much experience with managing task lists.  Also, calendar-cli is not really ready yet.
 
-Calendar
---------
+Calendar scope
+--------------
 
-When should you make another calendar/task list and when does it make sense to keep things in the same calendar?
+Different categories of tasks can be put into different calendars (and even different caldav servers).
+
+I believe it's best to keep as few calendars as possible, and rather use i.e. the categories field for splitting different types of tasks.
 
 As you can give access rights to other people for a whole caldav calendar (or "task list"), it makes sense to use the calendar level to control access rights.  You would typically like to have one calendar where your family can view/add tasks, other for work, perhaps separate calendars for separate projects at work if different projects involves different people, etc.
 
@@ -44,22 +46,20 @@ When to use location or geo, and when to use category?  I think that for the sup
 Pending-Dependent
 -----------------
 
-If one task A cannot be done without task B being done first, we say that A depends on B.  It may make sense to hide A from todolists, or maybe fade it away.  It may also make sense to push the due date for B such that there is a chance to get A done before it's due time.
+If task A cannot be done without task B being done first, we say that A depends on B.  It may make sense to hide A from todolists, or maybe fade it away.  It may also make sense to ensure the due date for B is before the due date for A.
 
 The VTODO-standard does not support this kind of relationship, but it's possible to use parent-child.  The parent will then be the dependent, and the child will be the pending.
 
 Parent-child relationship
 -------------------------
 
-This is not supported by calendar-cli as of today - but one can make a hierarchical task list.  It makes a lot of sense when having a big task that can be split up in subtasks.  Say, the task may be "build a bicycle shed".  That does take quite some planning, purchases and work, so one will definitively want to break it up in subtasks.  Ordering such a thing by categories is probably not so productive.
+With the parent-child relationship one can make a hierarchical task list.  It makes a lot of sense when having a big task that can be split up in subtasks.  Say, the task may be "build a bicycle shed".  That does take quite some planning, purchases and work, so one will definitively want to break it up in subtasks.  Ordering such a thing by categories is probably not so productive.
 
-What about the shopping list?  "Buy squash" seems to be a subtask of "buy vegetables" which again may be a subtask of "go shopping at the supermarket" - but I think it makes more sense to use categories for that purpose.  There are two differences between the supermarket shopping and the bicycle shed ...
+What about the shopping list?  "Buy squash" seems to be a subtask of "buy vegetables" which again may be a subtask of "go shopping at the supermarket" - but I think it makes more sense to use categories for that purpose ...
 
-* Building the bicycle shed serves a purpose for it's own sake.  You're going to buy planks for building the shed, you're not building a shed to buy planks.
+* Different causality - building the bicycle shed serves a purpose for it's own sake.  You're going to buy planks for building the shed, you're not building a shed to buy planks.
 
-* "Go to the shop" is not a task for it's own sake - you'd probably not first consider "I need to go to the shop, let's add that to the task list" and then later "According to my task list, I need to go to the shop.  Let's try to make a list of what I need there".  It's more likely that you discover you're running out of sugar and then decide to add "buy sugar" to the shopping list - and you'll go to the shop because you need to buy sugar, you're not buying sugar because you need to go to the shop.
-
-* Multiple parents may not be that trivial - you may have many different projects that requires you to buy planks.
+* You'd first add "build a shed" on the todo-list and then try to plan and see what subtasks are needed.  While one may first add "go to the shop" and then start thinking what to buy in the shop, it probably makes more sense to add "buy sugar" to the list when you see you're running short on sugar, or when you're planning to buy a cake.
 
 Recurring tasks
 ---------------
@@ -73,9 +73,9 @@ There can be only one status and one complete-date for a vtodo, no matter if it'
 dtstart vs due vs duration
 --------------------------
 
-I my opinion, dtstart is the earliest time you expect to start working with the vtodo, maybe even the earliest time it's possible to start.  One may want to postpone dtstart frequently.
+I my opinion, dtstart is the earliest time you expect to start working with the vtodo, maybe even the earliest time it's possible to start.  Passing the dtstart doesn't mean you need to drop everything else and start working on the task immediately.  You'd want to postpone the dtstart just to unclutter the todo-list.
 
-due is the time/date when the task has to be completed, come hell or high water.  It should (in most cases) not be postponed.
+Due is the time/date when the task has to be completed, come hell or high water.  It should probably not be postponed.
 
 Different task list implementations may behave differently, most of them is probably only concerned with the due date.
 
