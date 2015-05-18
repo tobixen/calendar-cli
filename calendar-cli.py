@@ -332,12 +332,21 @@ def todo_add(caldav_conn, args):
             rt.value = str(uid)
             t.save()
     
-    for attr in vtodo_txt_one + vtodo_txt_many:
+    for attr in vtodo_txt_one:
         if attr == 'summary':
             continue
         val = getattr(args, 'set_'+attr)
         if val:
             todo.add(attr, val)
+    ## TODO: this doesn't currently work quite the way we'd like it to
+    ## work (it adds to lines to the ical, and vobject cares only
+    ## about one of them), and if we do get it to work, we'd like to
+    ## refactor and get the same logic in the edit-function
+    for attr in vtodo_txt_many:
+        val = getattr(args, 'set_'+attr)
+        if val:
+            vals = val.split(',')
+            todo.add(attr, vals)
     cal.add_component(todo)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added todo item with uid=%s" % uid)
@@ -407,7 +416,7 @@ def todo_select(caldav_conn, args):
         ## TODO: we're fetching everything from the server, and then doing the filtering here.  It would be better to let the server do the filtering, though that requires library modifications.
         ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute.  The try-except construct should be removed at some point in the future, when caldav 0.5 is released.
         try:
-            tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
+            tasks = find_calendar(caldav_conn, args).todos(sort_keys=('isnt_overdue', 'hasnt_started', 'due', 'dtstart', 'priority'))
         except:
             tasks = find_calendar(caldav_conn, args).todos()
     for attr in vtodo_txt_one + vtodo_txt_many: ## TODO: now we have _exact_ match on items in the the array attributes, and substring match on items that cannot be duplicated.  Does that make sense?  Probably not.
@@ -415,6 +424,10 @@ def todo_select(caldav_conn, args):
             tasks = [x for x in tasks if hasattr(x.instance.vtodo, attr) and getattr(args, attr) in getattr(x.instance.vtodo, attr).value]
         if getattr(args, 'no'+attr):
             tasks = [x for x in tasks if not hasattr(x.instance.vtodo, attr)]
+    if args.overdue:
+        tasks = [x for x in tasks if hasattr(x.instance.vtodo, 'due') and _force_datetime(x.instance.vtodo.due.value, args) < _force_datetime(datetime.now(), args)]
+    if args.hide_future:
+        tasks = [x for x in tasks if not(hasattr(x.instance.vtodo, 'dtstart') and _force_datetime(x.instance.vtodo.dtstart.value, args) > _force_datetime(datetime.now(), args))]
     if args.hide_parents or args.hide_children:
         tasks_by_uid = {}
         for task in tasks:
@@ -639,6 +652,8 @@ def main():
     todo_parser.add_argument('--todo-uid')
     todo_parser.add_argument('--hide-parents', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
     todo_parser.add_argument('--hide-children', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
+    todo_parser.add_argument('--overdue', help='Only show overdue tasks', action='store_true')
+    todo_parser.add_argument('--hide-future', help='Hide events with future dtstart', action='store_true')
 
     for attr in vtodo_txt_one + vtodo_txt_many:
         todo_parser.add_argument('--'+attr, help="for filtering tasks")
