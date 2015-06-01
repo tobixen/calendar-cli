@@ -18,6 +18,7 @@ import json
 import os
 import logging
 import sys
+import re
 
 __version__ = "0.11.0-dev"
 __author__ = "Tobias Brox"
@@ -563,13 +564,38 @@ def todo_complete(caldav_conn, args):
                 next = rrule.after(datetime.now())
             except TypeError: ## pesky problem with comparition of timestamps with and without tzinfo
                 next = rrule.after(datetime.now(tz=tzlocal.get_localzone()))
-            import pdb; pdb.set_trace()
-            ## WORK IN PROGRESS
-            ## task.rrule.count - decrease it?
-            ## new_task should be a copy of task
-            ## set new_task.rrule_id or whatnot
-            ## delete new_task.rrule
-            ## new_task should be completed, old task should not.
+            if next:
+                import pdb; pdb.set_trace()
+                ## WORK IN PROGRESS
+            
+                ## new_task is to be completed and we keep the original task open
+                completed_task = task.copy()
+                remaining_task = task
+
+                ## the remaining task should have recurrence id set to next start time, and range THISANDFUTURE
+                if hasattr(remaining_task.instance.vtodo, 'recurrence_id'):
+                    del remaining_task.instance.vtodo.recurrence_id
+                remaining_task.instance.vtodo.add('recurrence-id')
+                remaining_task.instance.vtodo.recurrence_id.value = next ## TODO: should be same type as dtstart (date or datetime)
+                remaining_task.instance.vtodo.dtstart.value = next ## TODO: should be same type as dtstart (date or datetime)
+                remaining_task.instance.vtodo.recurrence_id.params['RANGE'] = [ 'THISANDFUTURE' ]
+                remaining_task.instance.vtodo.rrule
+                remaining_task.save()
+
+                ## the completed task should have recurrence id set to current time
+                ## count in rrule should decrease
+                if hasattr(completed_task.instance.vtodo, 'recurrence_id'):
+                    del completed_task.instance.vtodo.recurrence_id
+                completed_task.instance.vtodo.add('recurrence-id')
+                completed_task.instance.vtodo.recurrence_id.value = datetime.now()
+                completed_task.instance.vtodo.dtstart.value = datetime.now()
+                count_search = re.search('COUNT=(\d+)', completed_task.instance.vtodo.rrule.value)
+                if count_search:
+                    completed_task.instance.vtodo.rrule.value = re.replace('COUNT=(\d+)', 'COUNT=%d' % int(count_search.group(1))-1)
+                completed_task.complete()
+
+                continue
+
         task.complete()
             
 
