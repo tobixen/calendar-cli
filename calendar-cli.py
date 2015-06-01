@@ -565,9 +565,6 @@ def todo_complete(caldav_conn, args):
             except TypeError: ## pesky problem with comparition of timestamps with and without tzinfo
                 next = rrule.after(datetime.now(tz=tzlocal.get_localzone()))
             if next:
-                import pdb; pdb.set_trace()
-                ## WORK IN PROGRESS
-            
                 ## new_task is to be completed and we keep the original task open
                 completed_task = task.copy()
                 remaining_task = task
