@@ -20,3 +20,6 @@ cd ~/calendar-cli/ ; { ./calendar-cli.py todo --overdue list --todo-template='./
 ## Clean the list a bit by procrastinating tasks (this includes the overdue)
 cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-future list --todo-template='./calendar-cli.py todo --todo-uid={uid} postpone "in 5d" # {summary}' ; }  > /tmp/toprocrastinate ; $EDITOR /tmp/toprocrastinate ; . /tmp/toprocrastinate
 
+## Simple sync of a google calendar into personal calendar
+wget -O- https://www.google.com/calendar/ical/gsmk.gcal%40gmail.com/public/basic.ics | calendar-cli calendar addics
+
