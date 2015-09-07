@@ -775,6 +775,8 @@ def main():
 
     if not args.nocaldav:
         caldav_conn = caldav_connect(args)
+    else:
+        caldav_conn = None
 
     ret = args.func(caldav_conn, args)
 
