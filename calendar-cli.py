@@ -72,8 +72,15 @@ def niy(*args, **kwargs):
     raise NotImplementedError
 
 def caldav_connect(args):
+    ## args.ssl_verify_cert is a string and can be a path or 'yes'/'no'.
+    ## the library expects a path or a boolean.
+    ## Translate 'yes' and 'no' to True and False, or pass the raw string:
+    ssl_verify_cert = {
+        'yes': True,
+        'no': False
+    }.get(args.ssl_verify_cert, args.ssl_verify_cert)
     # Create the account
-    return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass)
+    return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass, ssl_verify_cert=ssl_verify_cert, proxy=args.caldav_proxy)
 
 def find_calendar(caldav_conn, args):
     if args.calendar_url:
@@ -173,7 +180,7 @@ def interactive_config(args, config, remaining_argv):
     if not section in config:
         config[section] = {}
 
-    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'language', 'timezone', 'inherits'):
+    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'caldav_proxy', 'ssl_verify_cert', 'language', 'timezone', 'inherits'):
         print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
         value = raw_input("Enter new value (or just enter to keep the old): ")
         if value:
@@ -657,6 +664,11 @@ def main():
             return
     else:
         defaults = config_section(config, args.config_section)
+        if not 'ssl_verify_cert' in defaults:
+            defaults['ssl_verify_cert'] = 'yes'
+        if not 'language' in defaults:
+            ## TODO: shouldn't this be lower case?
+            defaults['language'] = 'EN'
 
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
@@ -670,10 +682,12 @@ def main():
     parser.add_argument("--nocaldav", help="Do not connect to CalDAV server, but read/write icalendar format from stdin/stdout", action="store_true")
     parser.add_argument("--icalendar", help="Read/write icalendar format from stdin/stdout", action="store_true")
     parser.add_argument("--timezone", help="Timezone to use")
-    parser.add_argument('--language', help="language used", default="EN")
+    parser.add_argument('--language', help="language used")
     parser.add_argument("--caldav-url", help="Full URL to the caldav server", metavar="URL")
     parser.add_argument("--caldav-user", help="username to log into the caldav server", metavar="USER")
     parser.add_argument("--caldav-pass", help="password to log into the caldav server", metavar="PASS")
+    parser.add_argument("--caldav-proxy", help="HTTP proxy server to use (if any)")
+    parser.add_argument("--ssl-verify-cert", help="verification of the SSL cert - 'yes' to use the OS-provided CA-bundle, 'no' to trust any cert and the path to a CA-bundle")
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
     parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
 
