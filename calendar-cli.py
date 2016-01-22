@@ -611,11 +611,12 @@ def todo_delete(caldav_conn, args):
         task.delete()
         
 def config_section(config, section='default'):
-    if 'inherits' in config[section]:
+    if section in config and 'inherits' in config[section]:
         ret = config_section(config, config[section]['inherits'])
     else:
         ret = {}
-    ret.update(config[section])
+    if section in config:
+        ret.update(config[section])
     return ret
     
 def main():
