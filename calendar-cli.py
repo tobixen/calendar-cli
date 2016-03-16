@@ -1,6 +1,22 @@
 #!/usr/bin/python2
 
-## (the icalendar library is not ported to python3?)
+"""
+calendar-cli.py - high-level cli against caldav servers
+Copyright (C) 2013-2016 Tobias Brox and other contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 import argparse
 import pytz
@@ -19,13 +35,15 @@ import sys
 __version__ = "0.10"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013, Tobias Brox"
+__copyright__ = "Copyright 2013-2016, Tobias Brox"
 #__credits__ = []
 __license__ = "GPLv3+"
+__license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
 __maintainer__ = "Tobias Brox"
 __author_email__ = "t-calendar-cli@tobixen.no"
 __status__ = "Development"
 __product__ = "calendar-cli"
+__description__ = "high-level cli against caldav servers"
 
 def _force_datetime(t):
     """
@@ -516,6 +534,7 @@ def main():
     # We make this parser with add_help=False so that
     # it doesn't parse -h and print help.
     conf_parser = argparse.ArgumentParser(
+        prog=__product__,
         description=__doc__, # printed with -h/--help
         # Don't mess with format of description
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -529,6 +548,7 @@ def main():
     conf_parser.add_argument("--interactive-config",
                              help="Interactively ask for configuration", action="store_true")
     args, remaining_argv = conf_parser.parse_known_args()
+    conf_parser.add_argument("--version", action='version', version='%%(prog)s %s' % __version__)
 
     config = {}
 
@@ -554,6 +574,8 @@ def main():
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
     parser = argparse.ArgumentParser(
+        description=__doc__,
+        prog=__product__,
         # Inherit options from config_parser
         parents=[conf_parser]
         )
