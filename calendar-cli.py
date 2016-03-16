@@ -11,7 +11,7 @@ import time
 from datetime import datetime, timedelta, date
 import dateutil.parser
 from dateutil.rrule import rrulestr
-from icalendar import Calendar,Event,Todo,Journal
+from icalendar import Calendar,Event,Todo,Journal,Alarm
 import caldav
 import uuid
 import json
@@ -81,6 +81,13 @@ def caldav_connect(args):
     }.get(args.ssl_verify_cert, args.ssl_verify_cert)
     # Create the account
     return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass, ssl_verify_cert=ssl_verify_cert, proxy=args.caldav_proxy)
+
+def parse_time_delta(delta_string):
+    # TODO: handle bad strings more gracefully
+    if len(delta_string) < 2 or delta_string[-1].lower() not in time_units:
+        raise ValueError("Invalid time delta: %s" % delta_string)
+    num = int(delta_string[:-1])
+    return timedelta(0, num*time_units[delta_string[-1].lower()])
 
 def find_calendar(caldav_conn, args):
     if args.calendar_url:
@@ -220,6 +227,13 @@ def interactive_config(args, config, remaining_argv):
     if args.config_section == 'default' and section != 'default':
         config['default'] = config[section]
     return config
+
+def create_alarm(message, relative_timedelta):
+    alarm = Alarm()
+    alarm.add('ACTION', 'DISPLAY')
+    alarm.add('DESCRIPTION', message)
+    alarm.add('TRIGGER', relative_timedelta, parameters={'VALUE':'DURATION'})
+    return alarm
     
 def calendar_add(caldav_conn, args):
     cal = Calendar()
@@ -356,6 +370,11 @@ def todo_add(caldav_conn, args):
         if val:
             vals = val.split(',')
             todo.add(attr, vals)
+
+    if args.alarm is not None:
+        alarm = create_alarm(' '.join(args.summaryline), parse_time_delta(args.alarm))
+        todo.add_component(alarm)
+
     cal.add_component(todo)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added todo item with uid=%s" % uid)
@@ -726,6 +745,10 @@ def main():
     for attr in vtodo_txt_one + vtodo_txt_many:
         if attr != 'summary':
             todo_add_parser.add_argument('--set-'+attr, help="Set "+attr)
+    # TODO: we probably want to be able to set or delete alarms in other situations, yes?  generalize?
+    todo_add_parser.add_argument('--alarm', metavar='DURATION_BEFORE',
+        help="specifies a time at which a reminder should be presented for this task, " \
+             "relative to the start time of the task (as a timestamp delta)")
     todo_add_parser.set_defaults(func=todo_add)
     
     todo_list_parser = todo_subparsers.add_parser('list')
