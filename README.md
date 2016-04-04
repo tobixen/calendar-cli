@@ -5,6 +5,8 @@ Simple command-line CalDav client, for adding and browsing calendar items, todo 
 
 There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage.
 
+*NOTE*: As of 2015-10, someone has uploaded a "Command-line Interface for Google Calendar" to pypi with the same name - https://pypi.python.org/pypi/calendar-cli/ - this is a different project!
+
 Support
 -------
 
