@@ -1,8 +1,22 @@
 #!/usr/bin/python2
 
-## (the icalendar library is not ported to python3?)
-## (also, the caldav library depends on the vobject library which is not officially ported to python3 as of 2015-05)
-## (vobject and icalendar are quite overlapping libraries)
+"""
+calendar-cli.py - high-level cli against caldav servers
+Copyright (C) 2013-2016 Tobias Brox and other contributors
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
 
 import argparse
 import pytz
@@ -11,7 +25,7 @@ import time
 from datetime import datetime, timedelta, date
 import dateutil.parser
 from dateutil.rrule import rrulestr
-from icalendar import Calendar,Event,Todo,Journal
+from icalendar import Calendar,Event,Todo,Journal,Alarm
 import caldav
 import uuid
 import json
@@ -23,13 +37,15 @@ import re
 __version__ = "0.11.0-dev"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013, Tobias Brox"
+__copyright__ = "Copyright 2013-2016, Tobias Brox"
 #__credits__ = []
 __license__ = "GPLv3+"
+__license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
 __maintainer__ = "Tobias Brox"
 __author_email__ = "t-calendar-cli@tobixen.no"
 __status__ = "Development"
 __product__ = "calendar-cli"
+__description__ = "high-level cli against caldav servers"
 
 def _force_datetime(t, args):
     """
@@ -81,6 +97,13 @@ def caldav_connect(args):
     }.get(args.ssl_verify_cert, args.ssl_verify_cert)
     # Create the account
     return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass, ssl_verify_cert=ssl_verify_cert, proxy=args.caldav_proxy)
+
+def parse_time_delta(delta_string):
+    # TODO: handle bad strings more gracefully
+    if len(delta_string) < 2 or delta_string[-1].lower() not in time_units:
+        raise ValueError("Invalid time delta: %s" % delta_string)
+    num = int(delta_string[:-1])
+    return timedelta(0, num*time_units[delta_string[-1].lower()])
 
 def find_calendar(caldav_conn, args):
     if args.calendar_url:
@@ -220,6 +243,13 @@ def interactive_config(args, config, remaining_argv):
     if args.config_section == 'default' and section != 'default':
         config['default'] = config[section]
     return config
+
+def create_alarm(message, relative_timedelta):
+    alarm = Alarm()
+    alarm.add('ACTION', 'DISPLAY')
+    alarm.add('DESCRIPTION', message)
+    alarm.add('TRIGGER', relative_timedelta, parameters={'VALUE':'DURATION'})
+    return alarm
     
 def calendar_add(caldav_conn, args):
     cal = Calendar()
@@ -356,6 +386,11 @@ def todo_add(caldav_conn, args):
         if val:
             vals = val.split(',')
             todo.add(attr, vals)
+
+    if args.alarm is not None:
+        alarm = create_alarm(' '.join(args.summaryline), parse_time_delta(args.alarm))
+        todo.add_component(alarm)
+
     cal.add_component(todo)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added todo item with uid=%s" % uid)
@@ -611,11 +646,12 @@ def todo_delete(caldav_conn, args):
         task.delete()
         
 def config_section(config, section='default'):
-    if 'inherits' in config[section]:
+    if section in config and 'inherits' in config[section]:
         ret = config_section(config, config[section]['inherits'])
     else:
         ret = {}
-    ret.update(config[section])
+    if section in config:
+        ret.update(config[section])
     return ret
     
 def main():
@@ -630,6 +666,7 @@ def main():
     # We make this parser with add_help=False so that
     # it doesn't parse -h and print help.
     conf_parser = argparse.ArgumentParser(
+        prog=__product__,
         description=__doc__, # printed with -h/--help
         # Don't mess with format of description
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -643,6 +680,7 @@ def main():
     conf_parser.add_argument("--interactive-config",
                              help="Interactively ask for configuration", action="store_true")
     args, remaining_argv = conf_parser.parse_known_args()
+    conf_parser.add_argument("--version", action='version', version='%%(prog)s %s' % __version__)
 
     config = {}
 
@@ -727,6 +765,10 @@ def main():
     for attr in vtodo_txt_one + vtodo_txt_many:
         if attr != 'summary':
             todo_add_parser.add_argument('--set-'+attr, help="Set "+attr)
+    # TODO: we probably want to be able to set or delete alarms in other situations, yes?  generalize?
+    todo_add_parser.add_argument('--alarm', metavar='DURATION_BEFORE',
+        help="specifies a time at which a reminder should be presented for this task, " \
+             "relative to the start time of the task (as a timestamp delta)")
     todo_add_parser.set_defaults(func=todo_add)
     
     todo_list_parser = todo_subparsers.add_parser('list')

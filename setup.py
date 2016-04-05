@@ -31,7 +31,7 @@ setup(
         #"Development Status :: ..."
         "Environment :: Web Environment",
         #"Intended Audience :: Developers",
-        #"License :: OSI Approved :: ...",
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
         "Operating System :: POSIX",
         "Programming Language :: Python",
         "Topic :: Internet :: WWW/HTTP",
