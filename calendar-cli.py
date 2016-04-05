@@ -673,6 +673,8 @@ def main():
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
     parser = argparse.ArgumentParser(
+        description=__doc__,
+        prog=__product__,
         # Inherit options from config_parser
         parents=[conf_parser]
         )
