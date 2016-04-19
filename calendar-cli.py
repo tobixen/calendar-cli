@@ -237,9 +237,18 @@ def calendar_add(caldav_conn, args):
     ## TODO: error handling
     event_duration_secs = int(event_duration[:-1]) * time_units[event_duration[-1:]]
     dtstart = dateutil.parser.parse(event_spec[0])
-    event.add('dtstart', dtstart)
-    ## TODO: handle duration and end-time as options.  default 3600s by now.
-    event.add('dtend', dtstart + timedelta(0,event_duration_secs))
+    if args.whole_day:
+        if event_spec[1][-1:] != 'd':
+            raise ValueError('Duration of whole-day event must be multiple of 1d')
+        duration = int(event_spec[1][:-1])
+        dtstart = dateutil.parser.parse(event_spec[0])
+        dtend = dtstart + timedelta(days=duration)
+        event.add('dtstart', dtstart.date())
+        event.add('dtend', dtend.date())
+    else:
+        event.add('dtstart', dtstart)
+        ## TODO: handle duration and end-time as options.  default 3600s by now.
+        event.add('dtend', dtstart + timedelta(0,event_duration_secs))
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## not really correct, and it breaks i.e. with google calendar
     event.add('dtstamp', datetime.now())
@@ -652,6 +661,8 @@ def main():
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
+    calendar_add_parser.add_argument('--whole-day', help='Whole day event.', action='store_true', default=False)
+
     calendar_addics_parser = calendar_subparsers.add_parser('addics')
     calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
     calendar_addics_parser.set_defaults(func=calendar_addics)
