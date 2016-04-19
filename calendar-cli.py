@@ -661,7 +661,7 @@ def main():
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
-    calendar_add_parser.add_argument('--whole-day', help='Whole day event.', action='store_true', default=False)
+    calendar_add_parser.add_argument('--whole-day', help='Whole-day event', action='store_true', default=False)
 
     calendar_addics_parser = calendar_subparsers.add_parser('addics')
     calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
