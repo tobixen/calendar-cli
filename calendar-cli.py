@@ -81,6 +81,8 @@ time_units = {
 
 vtodo_txt_one = ['location', 'description', 'geo', 'organizer', 'summary']
 vtodo_txt_many = ['categories', 'comment', 'contact', 'resources']
+vcal_txt_one = ['location', 'description']
+vcal_txt_many = []
 
 def niy(*args, **kwargs):
     if 'feature' in kwargs:
@@ -285,6 +287,12 @@ def calendar_add(caldav_conn, args):
     ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
+    for attr in vcal_txt_one + vcal_txt_many:
+        if attr == 'summary':
+            continue
+        val = getattr(args, 'set_'+attr)
+        if val:
+            event.add(attr, val)
     event.add('summary', ' '.join(args.summary))
     cal.add_component(event)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
@@ -810,6 +818,10 @@ def main():
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
+
+    for attr in vcal_txt_one + vcal_txt_many:
+        calendar_add_parser.add_argument('--set-'+attr, help='Set '+attr)
+
     calendar_addics_parser = calendar_subparsers.add_parser('addics')
     calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
     calendar_addics_parser.set_defaults(func=calendar_addics)
