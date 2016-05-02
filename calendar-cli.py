@@ -599,7 +599,8 @@ def todo_list(caldav_conn, args):
                     break
             t['uid'] = task.instance.vtodo.uid.value
             ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(t['summary'], 'encode'):
+            if hasattr(t['summary'], 'encode') and isinstance(t['summary'], unicode):
+                import pdb; pdb.set_trace()
                 t['summary'] = t['summary'].encode('utf-8')
             print(args.todo_template.format(**t))
 
