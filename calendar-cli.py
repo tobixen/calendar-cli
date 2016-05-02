@@ -301,11 +301,7 @@ def calendar_add(caldav_conn, args):
 def calendar_delete(caldav_conn, args):
     cal = find_calendar(caldav_conn, args)
     if args.event_uid:
-        ## TODO: backwards compatibility hack, and/or caldav API in flux hack.  Should go away at some point.
-        if hasattr(cal, 'object_by_uid'):
-            event = cal.object_by_uid(args.event_uid)
-        else:
-            event = cal.event_by_uid(args.event_uid)
+        event = cal.event_by_uid(args.event_uid)
     elif args.event_url:
         event = cal.event_by_url(args.event_url)
     elif args.event_timestamp:
