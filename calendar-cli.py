@@ -451,7 +451,7 @@ def calendar_agenda(caldav_conn, args):
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
             ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(event['summary'], 'encode'):
+            if isinstance(event['summary'], unicode):
                 event['summary'] = event['summary'].encode('utf-8')
             print(args.event_template.format(**event))
 
