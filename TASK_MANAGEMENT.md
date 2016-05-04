@@ -96,7 +96,7 @@ dtstart vs due vs duration
 
 I my opinion, dtstart is the earliest time you expect to start working with the vtodo, or maybe the earliest time it's possible to start.  Passing the dtstart doesn't mean you need to drop everything else and start working on the task immediately.  You'd want to postpone the dtstart just to unclutter the todo-list.
 
-Due is the time/date when the task has to be completed, come hell or high water.  It should probably not be postponed.
+Due is the time/date when the task has to be completed, come hell or high water.  It should probably not be postponed.  Due dates should probably be set very far in the future or not set at all.  You really don't want the list of tasks that are soon due or even overdue to be cluttered up with stuff that can be procrastinated even further.
 
 Different task list implementations may behave differently, most of them is probably only concerned with the due date.
 
