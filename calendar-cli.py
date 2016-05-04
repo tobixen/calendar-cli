@@ -352,8 +352,6 @@ def todo_add(caldav_conn, args):
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
     todo = Todo()
-    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
-    ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
     todo.add('dtstamp', _now())
 
     for setarg in ('due', 'dtstart'):
@@ -585,7 +583,7 @@ def todo_list(caldav_conn, args):
             t = {'instance': task}
             t['dtstart'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()
             t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart'], args) <= _now() else ' '
-            t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
+            t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(args.default_due)
             t['due_passed_mark'] = '!' if _force_datetime(t['due'], args) < _now() else ' '
             for timeattr in ('dtstart', 'due'):
                 t[timeattr] = t[timeattr].strftime(args.timestamp_format)
@@ -763,7 +761,7 @@ def main():
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
     todo_add_parser = todo_subparsers.add_parser('add')
     todo_add_parser.add_argument('summaryline', nargs='+')
-    todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(7))
+    todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(365))
     todo_add_parser.add_argument('--set-dtstart', default=date.today()+timedelta(1))
     todo_add_parser.add_argument('--is-child', help="the new task is a child-task of the selected task(s)", action='store_true')
     for attr in vtodo_txt_one + vtodo_txt_many:
@@ -777,7 +775,7 @@ def main():
     
     todo_list_parser = todo_subparsers.add_parser('list')
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
-    todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
+    todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", type=int, default=365)
     todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
     todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F (%a)")
     todo_list_parser.set_defaults(func=todo_list)
