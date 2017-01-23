@@ -34,7 +34,7 @@ import logging
 import sys
 import re
 
-__version__ = "0.11.0-dev"
+__version__ = "0.11.0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013-2016, Tobias Brox"
