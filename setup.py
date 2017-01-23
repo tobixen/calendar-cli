@@ -40,7 +40,7 @@ setup(
     scripts=['calendar-cli.py'],
     install_requires=[
         'icalendar',
-        'caldav>=0.4.0.dev',
+        'caldav>=0.5.0',
         'pytz',
         'tzlocal'
     ],
