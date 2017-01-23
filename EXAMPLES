@@ -1,0 +1,25 @@
+TODO: clean this up a bit
+
+Eventually I'd like to make calendar-cli easier to use, so some of the "external logic" in those examples will eventually be moved into the tool itself.  Anyway, some of the power of having a command-line utility is that it's possible to do just anything ...
+
+## Take out a personal agenda from different calendar sources:
+for section in pp seb house default work holidays ; do ./calendar-cli.py --config-section $section calendar agenda  --agenda-days 20; done | sort ; for section in seb house default work-tasks pp-tasks ; do echo $section; ./calendar-cli.py --config-section $section todo --limit 10 --hide-parent list ; done ## AGENDA
+
+## Interactively set categories on uncategorized tasks:
+cd ~/calendar-cli/ ; { ./calendar-cli.py todo list --list-categories | perl -pe 's/^/# /' ; ./calendar-cli.py todo --nocategories list --todo-template='./calendar-cli.py todo --todo-uid={uid} edit --set-categories=foo # {summary}' ; }  > /tmp/nocat ; $EDITOR /tmp/nocat ; . /tmp/nocat
+
+## Interactively mark tasks as completed:
+cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-parents --limit 10 list --todo-template='# ./calendar-cli.py todo --todo-uid={uid} complete # {summary}' ; }  > /tmp/tocomplete ; $EDITOR /tmp/tocomplete ; . /tmp/tocomplete
+
+## Interactively mark tasks as completed, with category:
+CAT=keyboard ; cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-parents --categories=$CAT --limit 10 list --todo-template='# ./calendar-cli.py todo --todo-uid={uid} complete # {summary}' ; }  > /tmp/tocomplete ; $EDITOR /tmp/tocomplete ; . /tmp/tocomplete
+
+## Set more realistic due-dates on overdue tasks
+cd ~/calendar-cli/ ; { ./calendar-cli.py todo --overdue list --todo-template='./calendar-cli.py todo --todo-uid={uid} postpone --due "in 2d" # {summary}' ; }  > /tmp/toprocrastinate ; $EDITOR /tmp/toprocrastinate ; . /tmp/toprocrastinate
+
+## Clean the list a bit by procrastinating tasks (this includes the overdue)
+cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-future list --todo-template='./calendar-cli.py todo --todo-uid={uid} postpone "in 5d" # {summary}' ; }  > /tmp/toprocrastinate ; $EDITOR /tmp/toprocrastinate ; . /tmp/toprocrastinate
+
+## Simple sync of a google calendar into personal calendar
+wget -O- https://www.google.com/calendar/ical/gsmk.gcal%40gmail.com/public/basic.ics | calendar-cli calendar addics
+

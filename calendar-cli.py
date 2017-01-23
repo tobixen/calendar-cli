@@ -24,15 +24,17 @@ import tzlocal
 import time
 from datetime import datetime, timedelta, date
 import dateutil.parser
-from icalendar import Calendar,Event,Todo
+from dateutil.rrule import rrulestr
+from icalendar import Calendar,Event,Todo,Journal,Alarm
 import caldav
 import uuid
 import json
 import os
 import logging
 import sys
+import re
 
-__version__ = "0.10"
+__version__ = "0.11.0-dev"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013-2016, Tobias Brox"
@@ -45,14 +47,30 @@ __status__ = "Development"
 __product__ = "calendar-cli"
 __description__ = "high-level cli against caldav servers"
 
-def _force_datetime(t):
+def _force_datetime(t, args):
     """
     date objects cannot be compared with timestamp objects, neither in python2 nor python3.  Silly.
+    also, objects with time zone info cannot be compared with timestamps without time zone info.
+    and both datetime.now() and datetime.utcnow() seems to be without those bits.  Silly.
     """
     if type(t) == date:
-        return datetime(t.year, t.month, t.day)
+        t = datetime(t.year, t.month, t.day)
+    if t.tzinfo is None:
+        return t.replace(tzinfo=_tz(args))
+    return t
+
+def _now():
+    """
+    python datetime is ... crap!
+    """
+    return datetime.utcnow().replace(tzinfo=pytz.utc)
+
+def _tz(args):
+    if args.timezone:
+        return pytz.timezone(args.timezone)
     else:
-        return t
+        return tzlocal.get_localzone()
+
 
 ## global constant
 ## (todo: this doesn't really work out that well, leap seconds/days are not considered, and we're missing the month unit)
@@ -63,6 +81,8 @@ time_units = {
 
 vtodo_txt_one = ['location', 'description', 'geo', 'organizer', 'summary']
 vtodo_txt_many = ['categories', 'comment', 'contact', 'resources']
+vcal_txt_one = ['location', 'description']
+vcal_txt_many = []
 
 def niy(*args, **kwargs):
     if 'feature' in kwargs:
@@ -70,8 +90,22 @@ def niy(*args, **kwargs):
     raise NotImplementedError
 
 def caldav_connect(args):
+    ## args.ssl_verify_cert is a string and can be a path or 'yes'/'no'.
+    ## the library expects a path or a boolean.
+    ## Translate 'yes' and 'no' to True and False, or pass the raw string:
+    ssl_verify_cert = {
+        'yes': True,
+        'no': False
+    }.get(args.ssl_verify_cert, args.ssl_verify_cert)
     # Create the account
-    return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass)
+    return caldav.DAVClient(url=args.caldav_url, username=args.caldav_user, password=args.caldav_pass, ssl_verify_cert=ssl_verify_cert, proxy=args.caldav_proxy)
+
+def parse_time_delta(delta_string):
+    # TODO: handle bad strings more gracefully
+    if len(delta_string) < 2 or delta_string[-1].lower() not in time_units:
+        raise ValueError("Invalid time delta: %s" % delta_string)
+    num = int(delta_string[:-1])
+    return timedelta(0, num*time_units[delta_string[-1].lower()])
 
 def find_calendar(caldav_conn, args):
     if args.calendar_url:
@@ -171,7 +205,7 @@ def interactive_config(args, config, remaining_argv):
     if not section in config:
         config[section] = {}
 
-    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'language', 'timezone', 'inherits'):
+    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'caldav_proxy', 'ssl_verify_cert', 'language', 'timezone', 'inherits'):
         print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
         value = raw_input("Enter new value (or just enter to keep the old): ")
         if value:
@@ -211,6 +245,13 @@ def interactive_config(args, config, remaining_argv):
     if args.config_section == 'default' and section != 'default':
         config['default'] = config[section]
     return config
+
+def create_alarm(message, relative_timedelta):
+    alarm = Alarm()
+    alarm.add('ACTION', 'DISPLAY')
+    alarm.add('DESCRIPTION', message)
+    alarm.add('TRIGGER', relative_timedelta, parameters={'VALUE':'DURATION'})
+    return alarm
     
 def calendar_add(caldav_conn, args):
     cal = Calendar()
@@ -251,10 +292,16 @@ def calendar_add(caldav_conn, args):
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
     ## not really correct, and it breaks i.e. with google calendar
-    event.add('dtstamp', datetime.now())
+    event.add('dtstamp', _now())
     ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
+    for attr in vcal_txt_one + vcal_txt_many:
+        if attr == 'summary':
+            continue
+        val = getattr(args, 'set_'+attr)
+        if val:
+            event.add(attr, val)
     event.add('summary', ' '.join(args.summary))
     cal.add_component(event)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
@@ -263,11 +310,7 @@ def calendar_add(caldav_conn, args):
 def calendar_delete(caldav_conn, args):
     cal = find_calendar(caldav_conn, args)
     if args.event_uid:
-        ## TODO: backwards compatibility hack, and/or caldav API in flux hack.  Should go away at some point.
-        if hasattr(cal, 'object_by_uid'):
-            event = cal.object_by_uid(args.event_uid)
-        else:
-            event = cal.event_by_uid(args.event_uid)
+        event = cal.event_by_uid(args.event_uid)
     elif args.event_url:
         event = cal.event_by_url(args.event_url)
     elif args.event_timestamp:
@@ -288,6 +331,24 @@ def calendar_delete(caldav_conn, args):
         raise ValueError("Event deletion failed: either uid, url or timestamp is needed")
     event.delete()
 
+def journal_add(caldav_conn, args):
+    ## TODO: copied from todo_add, should probably be consolidated
+    cal = Calendar()
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('version', '2.0')
+    journal = Journal()
+    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
+    ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
+    journal.add('dtstamp', datetime.now())
+    journal.add('dtstart', date.today())
+    journal.add('summary', ' '.join(args.summaryline))
+    uid = uuid.uuid1()
+    journal.add('uid', str(uid))
+    cal.add_component(journal)
+    _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
+    print("Added journal item with uid=%s" % uid)
+    ## FULL STOP - should do some major refactoring before doing more work here!
+    
 def todo_add(caldav_conn, args):
     ## TODO: copied from calendar_add, should probably be consolidated
     if args.icalendar or args.nocaldav:
@@ -300,17 +361,15 @@ def todo_add(caldav_conn, args):
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
     todo = Todo()
-    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
-    ## TODO: (cryptic old comment:) not really correct, and it breaks i.e. with google calendar
-    todo.add('dtstamp', datetime.now())
+    todo.add('dtstamp', _now())
 
-    for arg in ('set_due', 'set_dtstart'):
-        if getattr(args, arg):
-            if type(getattr(args, arg)) == str:
-                val = dateutil.parser.parse(getattr(args, arg))
+    for setarg in ('due', 'dtstart'):
+        if getattr(args, 'set_'+setarg):
+            if type(getattr(args, 'set_'+setarg)) == str:
+                val = dateutil.parser.parse(getattr(args, 'set_'+setarg))
             else:
-                val = getattr(args, arg)
-        todo.add(arg, val)
+                val = getattr(args, 'set_'+setarg)
+        todo.add(setarg, val)
     todo.add('uid', str(uid))
     todo.add('summary', ' '.join(args.summaryline))
     todo.add('status', 'NEEDS-ACTION')
@@ -323,12 +382,26 @@ def todo_add(caldav_conn, args):
             rt.value = str(uid)
             t.save()
     
-    for attr in vtodo_txt_one + vtodo_txt_many:
+    for attr in vtodo_txt_one:
         if attr == 'summary':
             continue
         val = getattr(args, 'set_'+attr)
         if val:
             todo.add(attr, val)
+    ## TODO: this doesn't currently work quite the way we'd like it to
+    ## work (it adds to lines to the ical, and vobject cares only
+    ## about one of them), and if we do get it to work, we'd like to
+    ## refactor and get the same logic in the edit-function
+    for attr in vtodo_txt_many:
+        val = getattr(args, 'set_'+attr)
+        if val:
+            vals = val.split(',')
+            todo.add(attr, vals)
+
+    if args.alarm is not None:
+        alarm = create_alarm(' '.join(args.summaryline), parse_time_delta(args.alarm))
+        todo.add_component(alarm)
+
     cal.add_component(todo)
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added todo item with uid=%s" % uid)
@@ -343,7 +416,7 @@ def calendar_agenda(caldav_conn, args):
     if args.from_time:
         dtstart = dateutil.parser.parse(args.from_time)
     else:
-        dtstart = datetime.now()
+        dtstart = _now()
     if args.to_time:
         dtend = dateutil.parser.parse(args.to_time)
     elif args.agenda_mins:
@@ -369,11 +442,11 @@ def calendar_agenda(caldav_conn, args):
             else:
                 raise Exception("Panic")
             for event in events__:
-                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else datetime.now()
+                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                     if not isinstance(dtstart, datetime):
                         dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                     if not dtstart.tzinfo:
-                        dtstart = args.timezone.localize(dtstart)
+                        dtstart = _tz(args).localize(dtstart)
                     events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
@@ -385,7 +458,7 @@ def calendar_agenda(caldav_conn, args):
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
             ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(event['summary'], 'encode'):
+            if isinstance(event['summary'], unicode):
                 event['summary'] = event['summary'].encode('utf-8')
             print(args.event_template.format(**event))
 
@@ -398,12 +471,34 @@ def todo_select(caldav_conn, args):
         ## TODO: we're fetching everything from the server, and then doing the filtering here.  It would be better to let the server do the filtering, though that requires library modifications.
         ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute.  The try-except construct should be removed at some point in the future, when caldav 0.5 is released.
         try:
-            tasks = find_calendar(caldav_conn, args).todos(sort_keys=('dtstart', 'due', 'priority'))
+            tasks = find_calendar(caldav_conn, args).todos(sort_keys=('isnt_overdue', 'hasnt_started', 'due', 'dtstart', 'priority'))
         except:
             tasks = find_calendar(caldav_conn, args).todos()
     for attr in vtodo_txt_one + vtodo_txt_many: ## TODO: now we have _exact_ match on items in the the array attributes, and substring match on items that cannot be duplicated.  Does that make sense?  Probably not.
         if getattr(args, attr):
             tasks = [x for x in tasks if hasattr(x.instance.vtodo, attr) and getattr(args, attr) in getattr(x.instance.vtodo, attr).value]
+        if getattr(args, 'no'+attr):
+            tasks = [x for x in tasks if not hasattr(x.instance.vtodo, attr)]
+    if args.overdue:
+        tasks = [x for x in tasks if hasattr(x.instance.vtodo, 'due') and _force_datetime(x.instance.vtodo.due.value, args) < _force_datetime(datetime.now(), args)]
+    if args.hide_future:
+        tasks = [x for x in tasks if not(hasattr(x.instance.vtodo, 'dtstart') and _force_datetime(x.instance.vtodo.dtstart.value, args) > _force_datetime(datetime.now(), args))]
+    if args.hide_parents or args.hide_children:
+        tasks_by_uid = {}
+        for task in tasks:
+            tasks_by_uid[task.instance.vtodo.uid.value] = task
+        for task in tasks:
+            if hasattr(task.instance.vtodo, 'related_to'):
+                uid = task.instance.vtodo.uid.value
+                rel_uid = task.instance.vtodo.related_to.value
+                rel_type = task.instance.vtodo.related_to.params.get('RELTYPE', 'PARENT')
+                if ((rel_type == 'CHILD' and args.hide_parents) or (rel_type == 'PARENT' and args.hide_children)) and \
+                   rel_uid in tasks_by_uid and uid in tasks_by_uid:
+                    del tasks_by_uid[uid]
+                if ((rel_type == 'PARENT' and args.hide_parents) or (rel_type == 'CHILD' and args.hide_children)) and \
+                   rel_uid in tasks_by_uid:
+                    del tasks_by_uid[rel_uid]
+        tasks = [x for x in tasks if x.instance.vtodo.uid.value in tasks_by_uid]
     if args.top+args.limit:
         tasks = tasks[args.offset+args.offsetn:args.top+args.limit+args.offset+args.offsetn]
     elif args.offset+args.offsetn:
@@ -445,7 +540,7 @@ def todo_postpone(caldav_conn, args):
     if args.until.startswith('+'):
         rel_skew = timedelta(seconds=int(args.until[1:-1])*time_units[args.until[-1]])
     elif args.until.startswith('in'):
-        new_ts = datetime.now()+timedelta(seconds=int(args.until[2:-1])*time_units[args.until[-1]])
+        new_ts = _now()+timedelta(seconds=int(args.until[2:-1])*time_units[args.until[-1]])
     else:
         new_ts = dateutil.parser.parse(args.until)
         if not new_ts.time():
@@ -496,16 +591,18 @@ def todo_list(caldav_conn, args):
         for task in tasks:
             t = {'instance': task}
             t['dtstart'] = task.instance.vtodo.dtstart.value if hasattr(task.instance.vtodo,'dtstart') else date.today()
-            t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart']) <= datetime.now() else ' '
-            t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(365)
-            t['due_passed_mark'] = '!' if _force_datetime(t['due']) < datetime.now() else ' '
+            t['dtstart_passed_mark'] = '!' if _force_datetime(t['dtstart'], args) <= _now() else ' '
+            t['due'] = task.instance.vtodo.due.value if hasattr(task.instance.vtodo,'due') else date.today()+timedelta(args.default_due)
+            t['due_passed_mark'] = '!' if _force_datetime(t['due'], args) < _now() else ' '
+            for timeattr in ('dtstart', 'due'):
+                t[timeattr] = t[timeattr].strftime(args.timestamp_format)
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
                     break
             t['uid'] = task.instance.vtodo.uid.value
             ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(t['summary'], 'encode'):
+            if hasattr(t['summary'], 'encode') and isinstance(t['summary'], unicode):
                 t['summary'] = t['summary'].encode('utf-8')
             print(args.todo_template.format(**t))
 
@@ -514,7 +611,43 @@ def todo_complete(caldav_conn, args):
         raise ValueError("No caldav connection, aborting")
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
+        if hasattr(task.instance.vtodo, 'rrule'):
+            rrule = rrulestr(task.instance.vtodo.rrule.value)
+            try:
+                next = rrule.after(datetime.now())
+            except TypeError: ## pesky problem with comparition of timestamps with and without tzinfo
+                next = rrule.after(datetime.now(tz=tzlocal.get_localzone()))
+            if next:
+                ## new_task is to be completed and we keep the original task open
+                completed_task = task.copy()
+                remaining_task = task
+
+                ## the remaining task should have recurrence id set to next start time, and range THISANDFUTURE
+                if hasattr(remaining_task.instance.vtodo, 'recurrence_id'):
+                    del remaining_task.instance.vtodo.recurrence_id
+                remaining_task.instance.vtodo.add('recurrence-id')
+                remaining_task.instance.vtodo.recurrence_id.value = next ## TODO: should be same type as dtstart (date or datetime)
+                remaining_task.instance.vtodo.dtstart.value = next ## TODO: should be same type as dtstart (date or datetime)
+                remaining_task.instance.vtodo.recurrence_id.params['RANGE'] = [ 'THISANDFUTURE' ]
+                remaining_task.instance.vtodo.rrule
+                remaining_task.save()
+
+                ## the completed task should have recurrence id set to current time
+                ## count in rrule should decrease
+                if hasattr(completed_task.instance.vtodo, 'recurrence_id'):
+                    del completed_task.instance.vtodo.recurrence_id
+                completed_task.instance.vtodo.add('recurrence-id')
+                completed_task.instance.vtodo.recurrence_id.value = datetime.now()
+                completed_task.instance.vtodo.dtstart.value = datetime.now()
+                count_search = re.search('COUNT=(\d+)', completed_task.instance.vtodo.rrule.value)
+                if count_search:
+                    completed_task.instance.vtodo.rrule.value = re.replace('COUNT=(\d+)', 'COUNT=%d' % int(count_search.group(1))-1)
+                completed_task.complete()
+
+                continue
+
         task.complete()
+            
 
 def todo_delete(caldav_conn, args):
     if args.nocaldav:
@@ -524,11 +657,12 @@ def todo_delete(caldav_conn, args):
         task.delete()
         
 def config_section(config, section='default'):
-    if 'inherits' in config[section]:
+    if section in config and 'inherits' in config[section]:
         ret = config_section(config, config[section]['inherits'])
     else:
         ret = {}
-    ret.update(config[section])
+    if section in config:
+        ret.update(config[section])
     return ret
     
 def main():
@@ -579,6 +713,11 @@ def main():
             return
     else:
         defaults = config_section(config, args.config_section)
+        if not 'ssl_verify_cert' in defaults:
+            defaults['ssl_verify_cert'] = 'yes'
+        if not 'language' in defaults:
+            ## TODO: shouldn't this be lower case?
+            defaults['language'] = 'EN'
 
     # Parse rest of arguments
     # Don't suppress add_help here so it will handle -h
@@ -594,10 +733,12 @@ def main():
     parser.add_argument("--nocaldav", help="Do not connect to CalDAV server, but read/write icalendar format from stdin/stdout", action="store_true")
     parser.add_argument("--icalendar", help="Read/write icalendar format from stdin/stdout", action="store_true")
     parser.add_argument("--timezone", help="Timezone to use")
-    parser.add_argument('--language', help="language used", default="EN")
+    parser.add_argument('--language', help="language used")
     parser.add_argument("--caldav-url", help="Full URL to the caldav server", metavar="URL")
     parser.add_argument("--caldav-user", help="username to log into the caldav server", metavar="USER")
     parser.add_argument("--caldav-pass", help="password to log into the caldav server", metavar="PASS")
+    parser.add_argument("--caldav-proxy", help="HTTP proxy server to use (if any)")
+    parser.add_argument("--ssl-verify-cert", help="verification of the SSL cert - 'yes' to use the OS-provided CA-bundle, 'no' to trust any cert and the path to a CA-bundle")
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
     parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
 
@@ -612,28 +753,40 @@ def main():
     todo_parser.add_argument('--offsetn', type=int, default=0)
     todo_parser.add_argument('--limit', type=int, default=0)
     todo_parser.add_argument('--todo-uid')
+    todo_parser.add_argument('--hide-parents', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
+    todo_parser.add_argument('--hide-children', help='Hide the parent if you need to work on children tasks first (parent task depends on children tasks to be done first)', action='store_true')
+    todo_parser.add_argument('--overdue', help='Only show overdue tasks', action='store_true')
+    todo_parser.add_argument('--hide-future', help='Hide events with future dtstart', action='store_true')
 
     for attr in vtodo_txt_one + vtodo_txt_many:
         todo_parser.add_argument('--'+attr, help="for filtering tasks")
-    
+
+    for attr in vtodo_txt_one + vtodo_txt_many:
+        todo_parser.add_argument('--no'+attr, help="for filtering tasks", action='store_true')
+        
     #todo_parser.add_argument('--priority', ....) 
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
     todo_add_parser = todo_subparsers.add_parser('add')
     todo_add_parser.add_argument('summaryline', nargs='+')
-    todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(7))
+    todo_add_parser.add_argument('--set-due', default=date.today()+timedelta(365))
     todo_add_parser.add_argument('--set-dtstart', default=date.today()+timedelta(1))
     todo_add_parser.add_argument('--is-child', help="the new task is a child-task of the selected task(s)", action='store_true')
     for attr in vtodo_txt_one + vtodo_txt_many:
         if attr != 'summary':
             todo_add_parser.add_argument('--set-'+attr, help="Set "+attr)
+    # TODO: we probably want to be able to set or delete alarms in other situations, yes?  generalize?
+    todo_add_parser.add_argument('--alarm', metavar='DURATION_BEFORE',
+        help="specifies a time at which a reminder should be presented for this task, " \
+             "relative to the start time of the task (as a timestamp delta)")
     todo_add_parser.set_defaults(func=todo_add)
     
     todo_list_parser = todo_subparsers.add_parser('list')
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
-    todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", default=14)
+    todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", type=int, default=365)
     todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
+    todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F (%a)")
     todo_list_parser.set_defaults(func=todo_list)
 
     todo_edit_parser = todo_subparsers.add_parser('edit')
@@ -654,7 +807,14 @@ def main():
 
     todo_delete_parser = todo_subparsers.add_parser('delete')
     todo_delete_parser.set_defaults(func=todo_delete)
-    
+
+    ## journal
+    journal_parser = subparsers.add_parser('journal')
+    journal_subparsers = journal_parser.add_subparsers(title='tasks subcommand')
+    journal_add_parser = journal_subparsers.add_parser('add')
+    journal_add_parser.add_argument('summaryline', nargs='+')
+    journal_add_parser.set_defaults(func=journal_add)
+
     calendar_parser = subparsers.add_parser('calendar')
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
@@ -662,6 +822,9 @@ def main():
     calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
     calendar_add_parser.add_argument('--whole-day', help='Whole-day event', action='store_true', default=False)
+
+    for attr in vcal_txt_one + vcal_txt_many:
+        calendar_add_parser.add_argument('--set-'+attr, help='Set '+attr)
 
     calendar_addics_parser = calendar_subparsers.add_parser('addics')
     calendar_addics_parser.add_argument('--file', help="ICS file to upload", default='-')
@@ -684,13 +847,10 @@ def main():
 
     args = parser.parse_args(remaining_argv)
 
-    if args.timezone:
-        args.timezone = pytz.timezone(args.timezone)
-    else:
-        args.timezone = tzlocal.get_localzone()
-        
     if not args.nocaldav:
         caldav_conn = caldav_connect(args)
+    else:
+        caldav_conn = None
 
     ret = args.func(caldav_conn, args)
 

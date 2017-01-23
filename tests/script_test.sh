@@ -70,7 +70,7 @@ calendar_cli todo --categories scripttest list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just added and nothing more"
 
 echo "## Editing the task"
-calendar_cli todo --categories scripttest edit --set-comment "editing" --add-categories "scripttest2"
+calendar_cli todo --categories scripttest edit --set-summary "editing" --add-categories "scripttest2"
 
 echo "## Verifying that the edits got through"
 calendar_cli todo --categories scripttest list
@@ -84,6 +84,29 @@ echo "## Complete the task"
 calendar_cli todo --categories scripttest complete
 calendar_cli todo --categories scripttest list
 [ -z "$output" ] && echo "## OK: todo-item is done"
-calendar_cli todo --todo-uid $todouid1 delete
+calendar_cli todo --todo-uid $uidtodo1 delete
+
+## parent-child relationships
+echo "## Going to add three todo-items with children/parent relationships"
+calendar_cli todo add --set-categories scripttest "this is a grandparent"
+uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+calendar_cli todo --categories=scripttest add --set-categories scripttest --is-child "this is a parent and a child"
+uidtodo3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+calendar_cli todo --categories=scripttest add --set-categories scripttest --is-child "this task has two parents"
+uidtodo4=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+calendar_cli todo --categories scripttest list
+[ $(echo "$output" | wc -l) == 3 ] && echo "## OK: found three tasks"
+calendar_cli todo --hide-parents --categories scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
+echo "## Going to complete the children task"
+calendar_cli todo --hide-parents --categories scripttest complete
+calendar_cli todo --hide-parents --categories scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
+calendar_cli todo --hide-parents --categories scripttest complete
+calendar_cli todo --hide-parents --categories scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
+calendar_cli todo --hide-parents --categories scripttest complete
+calendar_cli todo --hide-parents --categories scripttest list
+[ -z "$output" ] && echo "## OK: found no tasks now"
 
 echo "## all tests completed"
