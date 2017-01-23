@@ -96,7 +96,7 @@ Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calend
 
 Add a calendar item "testevent" at 2013-10-01:
 
-    ./calendar-cli.py calendar add --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ 2013-10-01 testevent
+    ./calendar-cli.py --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ calendar add 2013-10-01 testevent
 
 (assumes that `caldav-url`, `calldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
 
