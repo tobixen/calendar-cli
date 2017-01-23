@@ -123,6 +123,7 @@ Changelog
 * 2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
 * 2015-03-30: version 0.9 - now it's possible to set a duration when adding events to the calendar.
 * 2015-05-02: version 0.10 - added support for todo subcommand
+* 2016-01-23: version 0.11 - more work on tasks, some bugfixes, pulled in new command line options from Florian Tham and Zachary Palmer
 
 Roadmap
 -------
@@ -132,7 +133,3 @@ This is being moved out to the issues section in github.
 * Allow specification of event duration and/or event end time through options
 * Fix easy-to-use symlinks (or alternatively wrapper scripts)
 * Make some nosetests
-
-Donations
----------
-Donations are not expected, but as long as this is a one-man hobby project at least it's not problematic to receive donations.  Send millibitcoins to 139xWFKwX9WejtRR1HP917qJGnRkZ6kn4M eventually.  Donations may motivate me to work on specific feature requests or issues.
