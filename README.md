@@ -3,9 +3,13 @@ calendar-cli
 
 Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.  As of version 0.11 it's even becoming a full-fledged task management tool.
 
+Other tools
+-----------
+
+There is another project out there, "Command-line Interface for Google Calendar", previously located at pypi under the calendar-cli name.  It has now been renamed to gcalendar-cli to avoid name conflict, and is available at https://pypi.python.org/pypi/gcalendar-cli/
+
 There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage.
 
-*NOTE*: As of 2015-10, someone has uploaded a "Command-line Interface for Google Calendar" to pypi with the same name - https://pypi.python.org/pypi/calendar-cli/ - this is a different project!
 
 Support
 -------
@@ -88,7 +92,7 @@ The file may look like this:
 }
 ```
 
-Optionally, in addition (or even instead) of "default", other "sections" can be created and selected through the --config-section option.  The rationale is to allow configuration for multiple CalDAV-servers to remain in the same configuration file.  Later versions will eventually be capable of copying events, or putting events into several calendars.
+Optionally, in addition (or even instead) of "default", other "sections" can be created and selected through the --config-section option.  The rationale is to allow configuration for multiple CalDAV-servers, or multiple calendars on the same CalDAV-server to remain in the same configuration file.  Later versions will eventually be capable of copying events, or putting events into several calendars.
 
 Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`
 
