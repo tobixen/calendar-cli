@@ -47,6 +47,14 @@ __status__ = "Development"
 __product__ = "calendar-cli"
 __description__ = "high-level cli against caldav servers"
 
+def _date(ts):
+    """
+    helper function to get a date out of a Date or Datetime object.
+    """
+    if hasattr(ts, 'date'):
+        return ts.date()
+    return ts
+
 def _force_datetime(t, args):
     """
     date objects cannot be compared with timestamp objects, neither in python2 nor python3.  Silly.
@@ -284,8 +292,8 @@ def calendar_add(caldav_conn, args):
         duration = int(event_spec[1][:-1])
         dtstart = dateutil.parser.parse(event_spec[0])
         dtend = dtstart + timedelta(days=duration)
-        event.add('dtstart', dtstart.date())
-        event.add('dtend', dtend.date())
+        event.add('dtstart', _date(dtstart.date))
+        event.add('dtend', _date(dtend.date))
     else:
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
@@ -544,7 +552,7 @@ def todo_postpone(caldav_conn, args):
     else:
         new_ts = dateutil.parser.parse(args.until)
         if not new_ts.time():
-            new_ts = new_ts.date()
+            new_ts = _date(new_ts)
             
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
@@ -562,12 +570,12 @@ def todo_postpone(caldav_conn, args):
                 if type(task.instance.vtodo.dtstart.value) != type(task.instance.vtodo.due.value):
                     ## RFC states they must be of the same type
                     if isinstance(task.instance.vtodo.dtstart.value, date):
-                        task.instance.vtodo.due.value = task.instance.vtodo.due.value.date()
+                        task.instance.vtodo.due.value = _date(task.instance.vtodo.due.value)
                     else:
                         d = task.instance.vtodo.due.value
                         task.instance.vtodo.due.value = datetime(d.year, d.month, d.day)
                     ## RFC also states that due cannot be before dtstart (and that makes sense)
-                    if task.instance.vtodo.dtstart.value > task.instance.vtodo.due.value:
+                    if _force_datetime(task.instance.vtodo.dtstart.value, args) > _force_datetime(task.instance.vtodo.due.value, args):
                         task.instance.vtodo.due.value = task.instance.vtodo.dtstart.value
         task.save()
 
