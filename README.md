@@ -45,10 +45,13 @@ not be up-to-date and may contain features not implemented yet.
 
 * --interactive: stop and query the user rather often
 * --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server.  Fits better into a configuration file.
+* --calendar-url: url to the calendar one wants to use.
 * --config-file: use a specific configuration file (default: $HOME/.calendar-cli.conf)
 * --config-section: use a specific section from the config file (i.e. to select a different caldav-server to connect to)
 * --icalendar: Write or read icalendar to/from stdout/stdin
 * --nocaldav: don't connect to a caldav server
+
+The caldav URL is supposed to be something like i.e. http://some.davical.server/caldav.php/ - it is only supposed to relay the server location, not the user or calendar.  It's a common mistake to use something like http://some.davical.server/caldav.php/tobixen/work-calendar/ - it will also work, but it will ignore the calendar part of it, and use first calendar it can find - perhaps tobixen/family-calendar/.  Use http://some.davical.server/caldav.php/ as the caldav URL, and tobixen/family-calendar as the calendar-url.
 
 ### Commands
 
