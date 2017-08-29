@@ -17,13 +17,13 @@ fi
 ## Take out a personal agenda from different calendar sources:
 
 echo "Here is your upcoming calendar events:"
-for section in pp seb house default work holidays
+for section in pir seb house default work holidays
 do
     calendar-cli --config-section $section calendar agenda  --agenda-days 20
 done | sort
 
 echo -e "\nAnd here is your upcoming calendar tasks:"
-for section in seb house default work-tasks pp-tasks
+for section in seb house default work-tasks pir-tasks
 do 
     echo $section
     calendar-cli --config-section $section todo $selflags --limit 10 --hide-parent list
@@ -54,9 +54,10 @@ rm $tempfile2
 
 
 ## Interactively mark tasks as completed:
-calendar-cli todo --selflags --hide-parents --limit 10 list --todo-template='# calendar-cli todo --todo-uid={uid} complete # {summary}' > $tempfile 
+calendar-cli todo $selflags --hide-parents --limit 10 list --todo-template='# calendar-cli todo --todo-uid={uid} complete # {summary}' > $tempfile 
 ## Exit if there aren't any tasks
 if [ ! -s $tempfile ]
+then
     echo "No tasks available.  Good?"
     exit 0
 fi
@@ -71,6 +72,7 @@ calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={
 if [ -s $tempfile ]
 then
     echo -e "\nNext up: Look over overdue tasks and consider procrastinating some of them.  Press enter"
+    read
     $EDITOR $tempfile
     . $tempfile
 fi
@@ -80,6 +82,7 @@ calendar-cli todo --hide-future list --todo-template='calendar-cli todo --todo-u
 if [ -s $tempfile ]
 then
     echo -e "\nNext up: Consider procrastinating the start-date of some of the tasks on your list.  Press enter"
+    read
     $EDITOR $tempfile
     . $tempfile
 fi
