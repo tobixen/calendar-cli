@@ -4,9 +4,6 @@
 
 [ -z "$EDITOR" ] && EDITOR=vi
 
-## Simple sync of a google calendar into personal calendar
-wget -O- https://www.google.com/calendar/ical/gsmk.gcal%40gmail.com/public/basic.ics | calendar-cli calendar addics
-
 echo "Enter a category or enter for all:"
 read category
 if [ -n "$category" ]
@@ -47,10 +44,10 @@ then
         $EDITOR $tempfile2
     done
     . $tempfile2
+    rm $tempfile2
 else
     echo "No uncategorized todo-items on the calendar.  Good!"
 fi
-rm $tempfile2
 
 
 ## Interactively mark tasks as completed:
@@ -86,6 +83,10 @@ then
     $EDITOR $tempfile
     . $tempfile
 fi
+
+## Simple sync of a google calendar into personal calendar
+wget -O- https://www.google.com/calendar/ical/gsmk.gcal%40gmail.com/public/basic.ics | calendar-cli calendar addics
+
 
 echo "Done!"
 
