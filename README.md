@@ -102,7 +102,7 @@ A configuration with multiple sections may look like this:
     "caldav_user": "luser",
     "caldav_pass": "insecure"
   },
-  { "caldav_url": "http://foo.baz.example.com/caldav/",
+  "caldav_url": "http://foo.baz.example.com/caldav/",
     "caldav_user": "luser2",
     "caldav_pass": "insecure2"
   }
