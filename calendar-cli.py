@@ -818,7 +818,7 @@ def main():
 
     ## journal
     journal_parser = subparsers.add_parser('journal')
-    journal_subparsers = journal_parser.add_subparsers(title='tasks subcommand')
+    journal_subparsers = journal_parser.add_subparsers(title='journal subcommand')
     journal_add_parser = journal_subparsers.add_parser('add')
     journal_add_parser.add_argument('summaryline', nargs='+')
     journal_add_parser.set_defaults(func=journal_add)
