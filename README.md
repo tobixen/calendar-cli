@@ -21,7 +21,7 @@ Rationale
 
 GUIs and Web-UIs are nice for some purposes, but I really find the command line unbeatable when it comes to:
 
-* Minor stuff that are repeated often.  Writing something like "todo add make a calendar-cli system" or "cal add 'tomorrow 15:40+2h' doctor appointment" is just very much faster than navigating into some web calendar interface and add an item there.
+* Minor stuff that are repeated often.  Writing something like "todo add make a calendar-cli system" or "calendar add 'tomorrow 15:40+2h' doctor appointment" is just very much faster than navigating into some web calendar interface and add an item there.
 * Things that are outside the scope of the UI.  Here is one of many tasks I'd like to do: "go through the work calendar, find all new calendar events that are outside office hours, check up with the personal calendar if there are potential conflicts, add some information at the personal calendar if appropriate", and vice versa - it has to be handled very manually if doing it through any normal calendar application as far as I know, but if having some simple CLI or python library I could easily make some interactive script that would help me doing the operation above.
 
 I've been looking a bit around, all I could find was cadaver and CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation, and there are things that simply cannot be done through those tools.
@@ -46,7 +46,7 @@ not be up-to-date and may contain features not implemented yet.
 * --interactive: stop and query the user rather often
 * --caldav-url, --caldav-user, --caldav-pass: how to connect to the CalDAV server.  Fits better into a configuration file.
 * --calendar-url: url to the calendar one wants to use.
-* --config-file: use a specific configuration file (default: $HOME/.calendar-cli.conf)
+* --config-file: use a specific configuration file (default: $HOME/.config/calendar.conf)
 * --config-section: use a specific section from the config file (i.e. to select a different caldav-server to connect to)
 * --icalendar: Write or read icalendar to/from stdout/stdin
 * --nocaldav: don't connect to a caldav server
@@ -87,10 +87,24 @@ Configuration file is by default located in $HOME/.config/calendar.conf and shou
 The file may look like this:
 
 ```json
-{ "default": 
-  { "caldav_url": "http://foo.bar.example.com/caldav/", 
+{ "default":
+  { "caldav_url": "http://foo.bar.example.com/caldav/",
     "caldav_user": "luser",
     "caldav_pass": "insecure"
+  }
+}
+```
+A configuration with multiple sections may look like this:
+
+```json
+{ "default":
+  { "caldav_url": "http://foo.bar.example.com/caldav/",
+    "caldav_user": "luser",
+    "caldav_pass": "insecure"
+  },
+  "caldav_url": "http://foo.baz.example.com/caldav/",
+    "caldav_user": "luser2",
+    "caldav_pass": "insecure2"
   }
 }
 ```

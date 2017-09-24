@@ -292,8 +292,8 @@ def calendar_add(caldav_conn, args):
         duration = int(event_spec[1][:-1])
         dtstart = dateutil.parser.parse(event_spec[0])
         dtend = dtstart + timedelta(days=duration)
-        event.add('dtstart', _date(dtstart.date))
-        event.add('dtend', _date(dtend.date))
+        event.add('dtstart', _date(dtstart.date()))
+        event.add('dtend', _date(dtend.date()))
     else:
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
@@ -818,7 +818,7 @@ def main():
 
     ## journal
     journal_parser = subparsers.add_parser('journal')
-    journal_subparsers = journal_parser.add_subparsers(title='tasks subcommand')
+    journal_subparsers = journal_parser.add_subparsers(title='journal subcommand')
     journal_add_parser = journal_subparsers.add_parser('add')
     journal_add_parser.add_argument('summaryline', nargs='+')
     journal_add_parser.set_defaults(func=journal_add)
