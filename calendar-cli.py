@@ -141,7 +141,7 @@ def _calendar_addics(caldav_conn, ics, uid, args):
 
     c = find_calendar(caldav_conn, args)
     c.add_event(ics)
- 
+
 def calendar_addics(caldav_conn, args):
     """
     Takes an ics from external source and puts it into the calendar.
@@ -166,10 +166,10 @@ def calendar_addics(caldav_conn, args):
     ## since the icalendar library doesn't offer methods out of the
     ## hat for doing such kind of things
     entries = c.subcomponents
-    
+
     ## Timezones should be duplicated into each ics, ref the RFC
     timezones = [x for x in entries if x.name == 'VTIMEZONE']
-    
+
     ## Make a mapping from UID to the other components
     uids = {}
     for x in entries:
@@ -184,12 +184,12 @@ def calendar_addics(caldav_conn, args):
 
 def interactive_config(args, config, remaining_argv):
     import readline
-    
+
     new_config = False
     section = 'default'
     backup = {}
     modified = False
-    
+
     print("Welcome to the interactive calendar configuration mode")
     print("Warning - untested code ahead, raise issues at t-calendar-cli@tobixen.no")
     if not config or not hasattr(config, 'keys'):
@@ -248,7 +248,7 @@ def interactive_config(args, config, remaining_argv):
                 os.rename(args.config_file, "%s.%s.bak" % (args.config_file, int(time.time())))
             with open(args.config_file, 'w') as outfile:
                 json.dump(config, outfile, indent=4)
-        
+
 
     if args.config_section == 'default' and section != 'default':
         config['default'] = config[section]
@@ -260,7 +260,7 @@ def create_alarm(message, relative_timedelta):
     alarm.add('DESCRIPTION', message)
     alarm.add('TRIGGER', relative_timedelta, parameters={'VALUE':'DURATION'})
     return alarm
-    
+
 def calendar_add(caldav_conn, args):
     cal = Calendar()
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
@@ -356,7 +356,7 @@ def journal_add(caldav_conn, args):
     _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
     print("Added journal item with uid=%s" % uid)
     ## FULL STOP - should do some major refactoring before doing more work here!
-    
+
 def todo_add(caldav_conn, args):
     ## TODO: copied from calendar_add, should probably be consolidated
     if args.icalendar or args.nocaldav:
@@ -389,7 +389,7 @@ def todo_add(caldav_conn, args):
             rt.params['RELTYPE']=['CHILD']
             rt.value = str(uid)
             t.save()
-    
+
     for attr in vtodo_txt_one:
         if attr == 'summary':
             continue
@@ -538,8 +538,8 @@ def todo_edit(caldav_conn, args):
             ## you may now access task.data to edit the raw ical, or
             ## task.instance.vtodo to edit a vobject instance
         task.save()
-        
-    
+
+
 def todo_postpone(caldav_conn, args):
     if args.nocaldav:
         raise ValueError("No caldav connection, aborting")
@@ -553,7 +553,7 @@ def todo_postpone(caldav_conn, args):
         new_ts = dateutil.parser.parse(args.until)
         if not new_ts.time():
             new_ts = _date(new_ts)
-            
+
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
         if new_ts:
@@ -655,7 +655,7 @@ def todo_complete(caldav_conn, args):
                 continue
 
         task.complete()
-            
+
 
 def todo_delete(caldav_conn, args):
     if args.nocaldav:
@@ -663,7 +663,7 @@ def todo_delete(caldav_conn, args):
     tasks = todo_select(caldav_conn, args)
     for task in tasks:
         task.delete()
-        
+
 def config_section(config, section='default'):
     if section in config and 'inherits' in config[section]:
         ret = config_section(config, config[section]['inherits'])
@@ -672,13 +672,13 @@ def config_section(config, section='default'):
     if section in config:
         ret.update(config[section])
     return ret
-    
+
 def main():
     """
     the main function does (almost) nothing but parsing command line parameters
     """
     ## This boilerplate pattern is from
-    ## http://stackoverflow.com/questions/3609852 
+    ## http://stackoverflow.com/questions/3609852
     ## We want defaults for the command line options to be fetched from the config file
 
     # Parse any conf_file specification
@@ -771,8 +771,8 @@ def main():
 
     for attr in vtodo_txt_one + vtodo_txt_many:
         todo_parser.add_argument('--no'+attr, help="for filtering tasks", action='store_true')
-        
-    #todo_parser.add_argument('--priority', ....) 
+
+    #todo_parser.add_argument('--priority', ....)
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
@@ -789,12 +789,12 @@ def main():
         help="specifies a time at which a reminder should be presented for this task, " \
              "relative to the start time of the task (as a timestamp delta)")
     todo_add_parser.set_defaults(func=todo_add)
-    
+
     todo_list_parser = todo_subparsers.add_parser('list')
     todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
     todo_list_parser.add_argument('--default-due', help="Default number of days from a task is submitted until it's considered due", type=int, default=365)
     todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
-    todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F (%a)")
+    todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%Y-%m-%d (%a)")
     todo_list_parser.set_defaults(func=todo_list)
 
     todo_edit_parser = todo_subparsers.add_parser('edit')
@@ -844,7 +844,7 @@ def main():
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
     calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart} {summary}")
-    calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%F %H:%M (%a)")
+    calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%Y-%m-%d %H:%M (%a)")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 
     calendar_delete_parser = calendar_subparsers.add_parser('delete')
