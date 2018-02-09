@@ -49,9 +49,10 @@ __status__ = "Development"
 __product__ = "calendar-cli"
 __description__ = "high-level cli against caldav servers"
 
-import codecs
-sys.stdin = codecs.getreader(sys.stdin.encoding or 'utf-8')(sys.stdin)
-sys.stdout = codecs.getwriter(sys.stdout.encoding or 'utf-8')(sys.stdout)
+if sys.version_info.major < 3:
+    import codecs
+    sys.stdin = codecs.getreader(sys.stdin.encoding or 'utf-8')(sys.stdin)
+    sys.stdout = codecs.getwriter(sys.stdout.encoding or 'utf-8')(sys.stdout)
 
 def _date(ts):
     """
