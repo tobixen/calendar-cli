@@ -1,5 +1,7 @@
 #!/usr/bin/python2
 
+from __future__ import unicode_literals
+
 """
 calendar-cli.py - high-level cli against caldav servers
 Copyright (C) 2013-2016 Tobias Brox and other contributors
@@ -46,6 +48,10 @@ __author_email__ = "t-calendar-cli@tobixen.no"
 __status__ = "Development"
 __product__ = "calendar-cli"
 __description__ = "high-level cli against caldav servers"
+
+import codecs
+sys.stdin = codecs.getreader(sys.stdin.encoding or 'utf-8')(sys.stdin)
+sys.stdout = codecs.getwriter(sys.stdout.encoding or 'utf-8')(sys.stdout)
 
 def _date(ts):
     """
@@ -465,9 +471,6 @@ def calendar_agenda(caldav_conn, args):
                     event['summary'] = getattr(event['instance'], summary_attr).value
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
-            ## TODO: this will probably break and is probably moot on python3?
-            if isinstance(event['summary'], unicode):
-                event['summary'] = event['summary'].encode('utf-8')
             print(args.event_template.format(**event))
 
 def todo_select(caldav_conn, args):
@@ -587,7 +590,7 @@ def todo_list(caldav_conn, args):
     tasks = todo_select(caldav_conn, args)
     if args.icalendar:
         for ical in tasks:
-            print(ical.data.encode('utf-8'))
+            print(ical.data)
     elif args.list_categories:
         categories = set()
         for task in tasks:
@@ -609,9 +612,6 @@ def todo_list(caldav_conn, args):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
                     break
             t['uid'] = task.instance.vtodo.uid.value
-            ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(t['summary'], 'encode') and isinstance(t['summary'], unicode):
-                t['summary'] = t['summary'].encode('utf-8')
             print(args.todo_template.format(**t))
 
 def todo_complete(caldav_conn, args):
