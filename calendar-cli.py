@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 
 """
 calendar-cli.py - high-level cli against caldav servers
@@ -140,6 +140,9 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         return
 
     c = find_calendar(caldav_conn, args)
+    if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
+        ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
+        print ("METHOD property found and ignored")
     c.add_event(ics)
 
 def calendar_addics(caldav_conn, args):
@@ -749,6 +752,7 @@ def main():
     parser.add_argument("--ssl-verify-cert", help="verification of the SSL cert - 'yes' to use the OS-provided CA-bundle, 'no' to trust any cert and the path to a CA-bundle")
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
     parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
+    parser.add_argument("--ignoremethod", help="Ignores METHOD property if exists in the request. This violates RFC4791 but is sometimes appended by some calendar servers", action="store_true")
 
     ## TODO: check sys.argv[0] to find command
     ## TODO: set up logging
