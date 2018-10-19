@@ -149,12 +149,15 @@ def _calendar_addics(caldav_conn, ics, uid, args):
     except caldav.lib.error.AuthorizationError as e:
         print("Error logging in");
         sys.exit(2)
+    """
+    Peter Havekes: This needs more checking. It works for me when connecting to O365
+    
     except caldav.lib.error.PutError as e:
         if "200 OK" in str(e):
             print("Duplicate")
         else:
             raise
-
+    """
 
 def calendar_addics(caldav_conn, args):
     """
