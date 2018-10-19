@@ -139,11 +139,21 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
         return
 
-    c = find_calendar(caldav_conn, args)
-    if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
-        ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
-        print ("METHOD property found and ignored")
-    c.add_event(ics)
+    try:
+        c = find_calendar(caldav_conn, args)
+        if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
+            ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
+            print ("METHOD property found and ignored")
+        c.add_event(ics)
+    except caldav.lib.error.AuthorizationError as e:
+        print("Error logging in");
+        sys.exit(2)
+    except caldav.lib.error.PutError as e:
+        if "200 OK" in str(e):
+            print("Duplicate")
+        else:
+            raise e
+
 
 def calendar_addics(caldav_conn, args):
     """
