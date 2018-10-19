@@ -152,7 +152,7 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         if "200 OK" in str(e):
             print("Duplicate")
         else:
-            raise e
+            raise
 
 
 def calendar_addics(caldav_conn, args):
