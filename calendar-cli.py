@@ -33,6 +33,7 @@ import os
 import logging
 import sys
 import re
+import urllib3
 
 __version__ = "0.11.0"
 __author__ = "Tobias Brox"
@@ -873,6 +874,9 @@ def main():
         caldav_conn = caldav_connect(args)
     else:
         caldav_conn = None
+    
+    if args.ssl_verify_cert == 'no':
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     ret = args.func(caldav_conn, args)
 
