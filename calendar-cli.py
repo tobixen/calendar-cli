@@ -450,7 +450,7 @@ def calendar_agenda(caldav_conn, args):
     events = []
     if args.icalendar:
         for ical in events_:
-            print(ical.data)
+            print(ical.data).encode('utf-8').strip()
     else:
         ## flatten. A recurring event may be a list of events.
         ## jeez ... zimbra and DaviCal does completely different things here
