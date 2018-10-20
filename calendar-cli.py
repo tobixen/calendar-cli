@@ -33,6 +33,7 @@ import os
 import logging
 import sys
 import re
+import urllib3
 
 __version__ = "0.11.0"
 __author__ = "Tobias Brox"
@@ -139,11 +140,24 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         raise ValueError("Nothing to do/invalid option combination for 'calendar add'-mode; either both --icalendar and --nocaldav should be set, or none of them")
         return
 
-    c = find_calendar(caldav_conn, args)
-    if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
-        ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
-        print ("METHOD property found and ignored")
-    c.add_event(ics)
+    try:
+        c = find_calendar(caldav_conn, args)
+        if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
+            ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
+            print ("METHOD property found and ignored")
+        c.add_event(ics)
+    except caldav.lib.error.AuthorizationError as e:
+        print("Error logging in");
+        sys.exit(2)
+    """
+    Peter Havekes: This needs more checking. It works for me when connecting to O365
+    
+    except caldav.lib.error.PutError as e:
+        if "200 OK" in str(e):
+            print("Duplicate")
+        else:
+            raise
+    """
 
 def calendar_addics(caldav_conn, args):
     """
@@ -440,7 +454,7 @@ def calendar_agenda(caldav_conn, args):
     events = []
     if args.icalendar:
         for ical in events_:
-            print(ical.data)
+            print(ical.data).encode('utf-8').strip()
     else:
         ## flatten. A recurring event may be a list of events.
         ## jeez ... zimbra and DaviCal does completely different things here
@@ -863,6 +877,9 @@ def main():
         caldav_conn = caldav_connect(args)
     else:
         caldav_conn = None
+    
+    if args.ssl_verify_cert == 'no':
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     ret = args.func(caldav_conn, args)
 
