@@ -58,9 +58,16 @@ def _date(ts):
 
 def _force_datetime(t, args):
     """
-    date objects cannot be compared with timestamp objects, neither in python2 nor python3.  Silly.
-    also, objects with time zone info cannot be compared with timestamps without time zone info.
-    and both datetime.now() and datetime.utcnow() seems to be without those bits.  Silly.
+    date objects cannot be compared with timestamp objects, neither in
+    python2 nor python3.  Silly.  also, objects with time zone info
+    cannot be compared with timestamps without time zone info.  and
+    both datetime.now() and datetime.utcnow() seems to be without
+    those bits.  Silly.
+
+    This method should only be used in comparitions, never when
+    populating fields in an icalendar object.  Events with dates
+    rather than timestamps are to be considered as full-day events,
+    so the difference is significant.
     """
     if type(t) == date:
         t = datetime(t.year, t.month, t.day)
@@ -315,10 +322,7 @@ def calendar_add(caldav_conn, args):
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))
-    ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
-    ## not really correct, and it breaks i.e. with google calendar
     event.add('dtstamp', _now())
-    ## maybe we should generate some uid?
     uid = uuid.uuid1()
     event.add('uid', str(uid))
     for attr in vcal_txt_one + vcal_txt_many:
