@@ -1,25 +1,92 @@
-TODO: clean this up a bit
+## Eventually I'd like to make calendar-cli easier to use, so some of the "external logic" in those examples will eventually be moved into the tool itself.  Anyway, some of the power of having a command-line utility is that it's possible to do just anything ...
 
-Eventually I'd like to make calendar-cli easier to use, so some of the "external logic" in those examples will eventually be moved into the tool itself.  Anyway, some of the power of having a command-line utility is that it's possible to do just anything ...
+## TODO: still some hard-coded personal stuff in the script.  Should move it out to a config section.
+
+[ -z "$EDITOR" ] && EDITOR=vi
+
+echo "Enter a category or enter for all:"
+read category
+if [ -n "$category" ]
+then
+    selflags="--categories=$category"
+fi
 
 ## Take out a personal agenda from different calendar sources:
-for section in pp seb house default work holidays ; do ./calendar-cli.py --config-section $section calendar agenda  --agenda-days 20; done | sort ; for section in seb house default work-tasks pp-tasks ; do echo $section; ./calendar-cli.py --config-section $section todo --limit 10 --hide-parent list ; done ## AGENDA
+
+echo "Here is your upcoming calendar events:"
+for section in pir seb house default work holidays
+do
+    calendar-cli --config-section $section calendar agenda  --agenda-days 20
+done | sort
+
+echo -e "\nAnd here is your upcoming calendar tasks:"
+for section in seb house default work-tasks pir-tasks
+do 
+    echo $section
+    calendar-cli --config-section $section todo $selflags --limit 10 --hide-parent list
+done
+
 
 ## Interactively set categories on uncategorized tasks:
-cd ~/calendar-cli/ ; { ./calendar-cli.py todo list --list-categories | perl -pe 's/^/# /' ; ./calendar-cli.py todo --nocategories list --todo-template='./calendar-cli.py todo --todo-uid={uid} edit --set-categories=foo # {summary}' ; }  > /tmp/nocat ; $EDITOR /tmp/nocat ; . /tmp/nocat
+tempfile=$(mktemp)
+calendar-cli todo --nocategories list --todo-template='calendar-cli todo --todo-uid={uid} edit --set-categories=foo # {summary}' > $tempfile
+if [ -s $tempfile ]
+then
+    ## We have non-categorized tasks
+    echo -e "\nNext up: categorization of uncategorized tasks.  Press enter"
+    read
+    tempfile2=$(mktemp)
+    ## Populate the tempfile with the list of categories first
+    calendar-cli todo list --list-categories | perl -pe 's/^/# /' > $tempfile2
+    cat $tempfile >> $tempfile2
+    while grep -q -- '--set-categories=foo ' $tempfile2
+    do
+        $EDITOR $tempfile2
+    done
+    . $tempfile2
+    rm $tempfile2
+else
+    echo "No uncategorized todo-items on the calendar.  Good!"
+fi
+
 
 ## Interactively mark tasks as completed:
-cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-parents --limit 10 list --todo-template='# ./calendar-cli.py todo --todo-uid={uid} complete # {summary}' ; }  > /tmp/tocomplete ; $EDITOR /tmp/tocomplete ; . /tmp/tocomplete
+calendar-cli todo $selflags --hide-parents --limit 10 list --todo-template='# calendar-cli todo --todo-uid={uid} complete # {summary}' > $tempfile 
+## Exit if there aren't any tasks
+if [ ! -s $tempfile ]
+then
+    echo "No tasks available.  Good?"
+    exit 0
+fi
 
-## Interactively mark tasks as completed, with category:
-CAT=keyboard ; cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-parents --categories=$CAT --limit 10 list --todo-template='# ./calendar-cli.py todo --todo-uid={uid} complete # {summary}' ; }  > /tmp/tocomplete ; $EDITOR /tmp/tocomplete ; . /tmp/tocomplete
+echo -e "\nNext up: Mark tasks that are completed as completed.  Press enter"
+read
+$EDITOR $tempfile
+. $tempfile
 
 ## Set more realistic due-dates on overdue tasks
-cd ~/calendar-cli/ ; { ./calendar-cli.py todo --overdue list --todo-template='./calendar-cli.py todo --todo-uid={uid} postpone --due "in 2d" # {summary}' ; }  > /tmp/toprocrastinate ; $EDITOR /tmp/toprocrastinate ; . /tmp/toprocrastinate
+calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={uid} postpone --due "in 4d" # {summary}' > $tempfile 
+if [ -s $tempfile ]
+then
+    echo -e "\nNext up: Look over overdue tasks and consider procrastinating some of them.  Press enter"
+    read
+    $EDITOR $tempfile
+    . $tempfile
+fi
 
 ## Clean the list a bit by procrastinating tasks (this includes the overdue)
-cd ~/calendar-cli/ ; { ./calendar-cli.py todo --hide-future list --todo-template='./calendar-cli.py todo --todo-uid={uid} postpone "in 5d" # {summary}' ; }  > /tmp/toprocrastinate ; $EDITOR /tmp/toprocrastinate ; . /tmp/toprocrastinate
+calendar-cli todo --hide-future list --todo-template='calendar-cli todo --todo-uid={uid} postpone "in 4d" # {summary}' > $tempfile
+if [ -s $tempfile ]
+then
+    echo -e "\nNext up: Consider procrastinating the start-date of some of the tasks on your list.  Press enter"
+    read
+    $EDITOR $tempfile
+    . $tempfile
+fi
 
 ## Simple sync of a google calendar into personal calendar
 wget -O- https://www.google.com/calendar/ical/gsmk.gcal%40gmail.com/public/basic.ics | calendar-cli calendar addics
+
+
+echo "Done!"
 
