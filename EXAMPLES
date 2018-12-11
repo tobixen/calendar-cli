@@ -51,7 +51,7 @@ fi
 
 
 ## Interactively mark tasks as completed:
-calendar-cli todo $selflags --hide-parents --limit 10 list --todo-template='# calendar-cli todo --todo-uid={uid} complete # {summary}' > $tempfile 
+calendar-cli todo $selflags --hide-parents --limit 12 list --todo-template='# calendar-cli todo --todo-uid={uid} complete # {summary}' > $tempfile
 ## Exit if there aren't any tasks
 if [ ! -s $tempfile ]
 then
@@ -65,7 +65,7 @@ $EDITOR $tempfile
 . $tempfile
 
 ## Set more realistic due-dates on overdue tasks
-calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={uid} postpone --due "in 4d" # {summary}' > $tempfile 
+calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={uid} postpone --due "in 15d" # {summary}' > $tempfile 
 if [ -s $tempfile ]
 then
     echo -e "\nNext up: Look over overdue tasks and consider procrastinating some of them.  Press enter"
@@ -75,7 +75,7 @@ then
 fi
 
 ## Clean the list a bit by procrastinating tasks (this includes the overdue)
-calendar-cli todo --hide-future list --todo-template='calendar-cli todo --todo-uid={uid} postpone "in 4d" # {summary}' > $tempfile
+calendar-cli todo --limit 10 --hide-future list --todo-template='calendar-cli todo --todo-uid={uid} postpone "in 4d" # {summary}' > $tempfile
 if [ -s $tempfile ]
 then
     echo -e "\nNext up: Consider procrastinating the start-date of some of the tasks on your list.  Press enter"
