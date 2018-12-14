@@ -479,8 +479,18 @@ def calendar_agenda(caldav_conn, args):
                     events.append({'dtstart': dtstart, 'instance': event})
         events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
         for event in events:
-            event['dstart'] = event['dtstart'].strftime(args.timestamp_format)
             event['summary'] = "(no description)"
+            event['dtstart'] = event['dtstart'].strftime(args.timestamp_format)
+            for timeattr in ('dtcreated', 'dtend'):
+                if hasattr(event['instance'], timeattr):
+                    event[timeattr] = getattr(event['instance'], timeattr).value
+                    if hasattr(event[timeattr], 'strftime'):
+                        event[timeattr] = event[timeattr].strftime(args.timestamp_format)
+                else:
+                    event[timeattr] = '-'
+            for textattr in ('description', 'location'):
+                if hasattr(event['instance'], textattr):
+                    event[textattr] = getattr(event['instance'], textattr).value
             for summary_attr in ('summary', 'location', 'description'):
                 if hasattr(event['instance'], summary_attr):
                     event['summary'] = getattr(event['instance'], summary_attr).value
@@ -828,7 +838,7 @@ def main():
     todo_edit_parser.set_defaults(func=todo_edit)
 
     todo_postpone_parser = todo_subparsers.add_parser('postpone')
-    todo_postpone_parser.add_argument('until', help="either a new date or +interval to add some interval to the existing time, or i.e. 'in 3d' to set the time to a new time relative to the current time.  interval is a number postfixed with a one character unit (any of smhdwy).  If the todo-item has a dstart, this field will be modified, else the due timestamp will be modified.    If both timestamps exists and dstart will be moved beyond the due time, the due time will be set to dtime.")
+    todo_postpone_parser.add_argument('until', help="either a new date or +interval to add some interval to the existing time, or i.e. 'in 3d' to set the time to a new time relative to the current time.  interval is a number postfixed with a one character unit (any of smhdwy).  If the todo-item has a dtstart, this field will be modified, else the due timestamp will be modified.    If both timestamps exists and dstart will be moved beyond the due time, the due time will be set to dtime.")
     todo_postpone_parser.add_argument('--due', help="move the due, not the dtstart", action='store_true')
     todo_postpone_parser.set_defaults(func=todo_postpone)
 
@@ -865,7 +875,7 @@ def main():
     calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
-    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dstart} {summary}")
+    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dtstart} {summary}")
     calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%Y-%m-%d %H:%M (%a)")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 
