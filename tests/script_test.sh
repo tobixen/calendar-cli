@@ -25,7 +25,7 @@ calendar_cli() {
 
 ## CLEANUP from earlier failed test runs
 
-for uid in $(../calendar-cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{uid}') ; do ../calendar-cli calendar delete --event-uid=$uid ; done
+for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 
 ## TESTING
 
@@ -39,7 +39,7 @@ echo "## Attempting to add a past event at 2010-10-09 20:00:00, 2 hours duration
 calendar_cli calendar add '2010-10-09 20:00:00+2h' 'testing testing'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## Attempting to add a past event at 2010-10-10 20:00:00, CET (1 hour duration is default)"
-calendar_cli calendar add '2010-10-10 20:00:00+01:00' 'testing testing'
+calendar_cli calendar add '2010-10-10 20:00:00+01:00' 'testing testing' --set-description='this is a test calendar event'
 uid2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## Attempting to add a past event at 2010-10-11 20:00:00, CET, 3h duration"
 calendar_cli calendar add '2010-10-11 20:00:00+01:00+3h' 'testing testing'
@@ -47,8 +47,8 @@ uid3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## OK: Added the event, uid is $uid"
 
 echo "## Taking out the agenda for 2010-10-09 + four days"
-calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=4
-echo $output | { grep -q 'testing testing' && echo "## OK: found the event" ; } || echo "## FAIL: didn't find the event"
+calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=4 --event-template='{description}'
+echo $output | { grep -q 'this is a test calendar event' && echo "## OK: found the event" ; } || echo "## FAIL: didn't find the event"
 
 echo "## Taking out the agenda for 2010-10-10, with uid"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dtstart} {uid}'

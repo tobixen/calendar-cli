@@ -488,17 +488,20 @@ def calendar_agenda(caldav_conn, args):
                         event[timeattr] = event[timeattr].strftime(args.timestamp_format)
                 else:
                     event[timeattr] = '-'
-            for textattr in ('description', 'location'):
+            for textattr in vcal_txt_one:
                 if hasattr(event['instance'], textattr):
                     event[textattr] = getattr(event['instance'], textattr).value
+                else:
+                    event[textattr] = '-'
             for summary_attr in ('summary', 'location', 'description'):
                 if hasattr(event['instance'], summary_attr):
                     event['summary'] = getattr(event['instance'], summary_attr).value
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
             ## TODO: this will probably break and is probably moot on python3?
-            if isinstance(event['summary'], unicode):
-                event['summary'] = event['summary'].encode('utf-8')
+            for attr in vcal_txt_one + ['summary']:
+                if isinstance(event['summary'], unicode):
+                    event['summary'] = event['summary'].encode('utf-8')
             print(args.event_template.format(**event))
 
 def todo_select(caldav_conn, args):
