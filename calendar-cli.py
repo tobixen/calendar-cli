@@ -699,7 +699,7 @@ def main():
             logging.error("error in config file.  You may want to run --interactive-config or fix the config file", exc_info=True)
 
     if args.interactive_config:
-        config = interactive_config(args, config, remaining_argv)
+        defaults = interactive_config(args, config, remaining_argv)
         if not remaining_argv:
             return
     else:
