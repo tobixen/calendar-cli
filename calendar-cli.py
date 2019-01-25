@@ -2,7 +2,7 @@
 
 """
 calendar-cli.py - high-level cli against caldav servers
-Copyright (C) 2013-2016 Tobias Brox and other contributors
+Copyright (C) 2013-2018 Tobias Brox and other contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ import urllib3
 __version__ = "0.11.0.dev0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013-2016, Tobias Brox"
+__copyright__ = "Copyright 2013-2018, Tobias Brox"
 #__credits__ = []
 __license__ = "GPLv3+"
 __license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
@@ -153,8 +153,8 @@ def _calendar_addics(caldav_conn, ics, uid, args):
             ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
             print ("METHOD property found and ignored")
         c.add_event(ics)
-    except caldav.lib.error.AuthorizationError as e:
-        print("Error logging in");
+    except caldav.lib.error.AuthorizationError:
+        print("Error logging in")
         sys.exit(2)
     """
     Peter Havekes: This needs more checking. It works for me when connecting to O365
@@ -294,7 +294,7 @@ def calendar_add(caldav_conn, args):
     ## read timestamps from arguments
     event_spec = args.event_time.split('+')
     if len(event_spec)>3:
-        raise ValueError('Invalid event time "%s" - can max contain 2 plus-signs' % event_time)
+        raise ValueError('Invalid event time "%s" - can max contain 2 plus-signs' % args.event_time)
     elif len(event_spec)==3:
         event_time = '%s+%s' % tuple(event_spec[0:2])
         event_duration = event_spec[2]
