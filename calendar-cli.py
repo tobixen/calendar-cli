@@ -416,7 +416,7 @@ def calendar_agenda(caldav_conn, args):
         dtend = dtstart + timedelta(args.agenda_days)
 
     ## TODO: time zone
-    events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend)
+    events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend, expand=True)
     events = []
     if args.icalendar:
         for ical in events_:
