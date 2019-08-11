@@ -34,6 +34,7 @@ import logging
 import sys
 import re
 import urllib3
+from getpass import getpass
 
 __version__ = "0.11.0.dev0"
 __author__ = "Tobias Brox"
@@ -238,8 +239,14 @@ def interactive_config(args, config, remaining_argv):
         config[section] = {}
 
     for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'caldav_proxy', 'ssl_verify_cert', 'language', 'timezone', 'inherits'):
-        print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
-        value = raw_input("Enter new value (or just enter to keep the old): ")
+
+        if config_key == 'caldav_pass':
+            print("Config option caldav_pass - old value: **HIDDEN**")
+            value = getpass(prompt="Enter new value (or just enter to keep the old): ")
+        else:
+            print("Config option %s - old value: %s" % (config_key, config[section].get(config_key, '(None)')))
+            value = raw_input("Enter new value (or just enter to keep the old): ")
+
         if value:
             config[section][config_key] = value
             modified = True
