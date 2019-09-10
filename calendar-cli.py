@@ -904,9 +904,9 @@ def main():
     args = parser.parse_args(remaining_argv)
 
     if not args.nocaldav:
-        if not args.calendar_url:
+        if not args.calendar_url and not args.caldav_url:
             sys.stderr.write("""
-missing mandatory argument calendar_url
+missing mandatory arguments ... either calendar_url or caldav_url needs to be set
 Have you set up a config file? Read the doc or ...
 ... use the --interactive-config option to create a config file
 """)
