@@ -216,7 +216,7 @@ def interactive_config(args, config, remaining_argv):
     modified = False
 
     print("Welcome to the interactive calendar configuration mode")
-    print("Warning - untested code ahead, raise issues at t-calendar-cli@tobixen.no")
+    print("Warning - untested code ahead, raise issues at t-calendar-cli@tobixen.no or the github repo")
     if not config or not hasattr(config, 'keys'):
         config = {}
         print("No valid existing configuration found")
@@ -898,8 +898,16 @@ def main():
     args = parser.parse_args(remaining_argv)
 
     if not args.nocaldav:
+        if not args.calendar_url:
+            sys.stderr.write("""
+missing mandatory argument calendar_url
+Have you set up a config file? Read the doc or ...
+... use the --interactive-config option to create a config file
+""")
+            sys.exit(1)
         caldav_conn = caldav_connect(args)
     else:
+
         caldav_conn = None
     
     if args.ssl_verify_cert == 'no':
