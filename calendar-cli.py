@@ -42,6 +42,11 @@ try:
 except NameError:
     raw_input = input
 
+try:
+    unicode
+except NameError:
+    unicode = str
+
 __version__ = "0.11.0.dev0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
