@@ -1,8 +1,8 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 calendar-cli.py - high-level cli against caldav servers
-Copyright (C) 2013-2018 Tobias Brox and other contributors
+Copyright (C) 2013-2019 Tobias Brox and other contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -36,10 +36,16 @@ import re
 import urllib3
 from getpass import getpass
 
+## ref https://github.com/tobixen/calendar-cli/issues/33, python3-compatibility
+try:
+    raw_input
+except NameError:
+    raw_input = input
+
 __version__ = "0.11.0.dev0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013-2018, Tobias Brox"
+__copyright__ = "Copyright 2013-2019, Tobias Brox"
 #__credits__ = []
 __license__ = "GPLv3+"
 __license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
