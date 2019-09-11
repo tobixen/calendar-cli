@@ -41,7 +41,7 @@ try:
     raw_input
 except NameError:
     raw_input = input
-    sys.write("here be dragons - calendar-cli is not properly tested for python3.  See https://github.com/tobixen/calendar-cli/issues/33")
+    sys.stderr.write("here be dragons - calendar-cli is not properly tested for python3.  See https://github.com/tobixen/calendar-cli/issues/33")
 
 try:
     unicode
