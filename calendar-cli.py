@@ -500,6 +500,8 @@ def calendar_agenda(caldav_conn, args):
                     if not dtstart.tzinfo:
                         dtstart = _tz(args).localize(dtstart)
                     events.append({'dtstart': dtstart, 'instance': event})
+        ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
+        ## this will probably cause regression on sufficiently old versions of python
         events.sort(key=lambda a: a['dtstart'])
         for event in events:
             event['summary'] = "(no description)"
