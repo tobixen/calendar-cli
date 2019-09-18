@@ -474,6 +474,7 @@ def calendar_agenda(caldav_conn, args):
         dtend = dtstart + timedelta(minutes=args.agenda_mins)
     elif args.agenda_days:
         dtend = dtstart + timedelta(args.agenda_days)
+    ## TODO - error handling if dtend is not set above - but agenda_days have a default value, so that probably won't happen
 
     ## TODO: time zone
     events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend, expand=True)
@@ -499,7 +500,7 @@ def calendar_agenda(caldav_conn, args):
                     if not dtstart.tzinfo:
                         dtstart = _tz(args).localize(dtstart)
                     events.append({'dtstart': dtstart, 'instance': event})
-        events.sort(lambda a,b: cmp(a['dtstart'], b['dtstart']))
+        events.sort(key=lambda a: a['dtstart'])
         for event in events:
             event['summary'] = "(no description)"
             event['dtstart'] = event['dtstart'].strftime(args.timestamp_format)
