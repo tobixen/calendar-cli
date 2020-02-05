@@ -48,10 +48,10 @@ try:
 except NameError:
     unicode = str
 
-__version__ = "0.11.0.dev0"
+__version__ = "0.12.0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013-2019, Tobias Brox"
+__copyright__ = "Copyright 2013-2020, Tobias Brox"
 #__credits__ = []
 __license__ = "GPLv3+"
 __license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
@@ -914,6 +914,12 @@ def main():
     calendar_delete_parser.set_defaults(func=calendar_delete)
 
     args = parser.parse_args(remaining_argv)
+
+    if args.debug_logging:
+        ## TODO: set up more proper logging in a more proper way
+        logging.getLogger().setLevel(logging.DEBUG)
+        caldav.log.setLevel(logging.DEBUG)
+        caldav.log.addHandler(logging.StreamHandler())
 
     if not args.nocaldav:
         if not args.calendar_url and not args.caldav_url:

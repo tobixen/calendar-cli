@@ -129,23 +129,6 @@ Objectives
 * It should be possible to get out lists ("agenda") of calendar items and todo-items.
 * Interface for copying calendar items between calendars, even between calendars on distinct caldav servers
 
-Changelog
----------
-
-* 2013-09-15: Made a repository at github and wrote up this README.
-* 2013-09-24: version 0.01 - supports creating an ical-file based on command line parameters
-* 2013-09-28: version 0.02 - possible to add a calendar item to the caldav server
-* 2013-10-02: version 0.03 - support for configuration file
-* 2013-10-05: version 0.04 - no need to specify URL for the default calendar
-* 2013-12 - 2014-03: helped cyrilrbt on making a new release of the caldav library
-* 2014-03-07: version 0.05 - rewrote parts of the tool to using the caldav library.  Nice!!!
-* 2014-03-14: version 0.6 - now agenda works quite smooth.  I think this is becoming a useful tool.
-* 2015-02-15: version 0.7 - supports deletion of events, alternative templates for the event output and a small testing script
-* 2015-03-30: version 0.8 - has a interactive configuration mode for those not feeling comfortable with hand-crafting the config in json syntax
-* 2015-03-30: version 0.9 - now it's possible to set a duration when adding events to the calendar.
-* 2015-05-02: version 0.10 - added support for todo subcommand
-* 2016-01-23: version 0.11 - more work on tasks, some bugfixes, pulled in new command line options from Florian Tham and Zachary Palmer
-
 Roadmap
 -------
 This is being moved out to the issues section in github.
