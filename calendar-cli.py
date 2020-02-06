@@ -533,7 +533,7 @@ def todo_select(caldav_conn, args):
     if args.top+args.limit+args.offset+args.offsetn and args.todo_uid:
         raise ValueError("It doesn't make sense to combine --todo-uid with --top/--limit/--offset/--offsetn")
     if args.todo_uid:
-        tasks = [ find_calendar(caldav_conn, args).object_by_uid(args.todo_uid) ]
+        tasks = [ find_calendar(caldav_conn, args).todo_by_uid(args.todo_uid) ]
     else:
         ## TODO: we're fetching everything from the server, and then doing the filtering here.  It would be better to let the server do the filtering, though that requires library modifications.
         ## TODO: current release of the caldav library doesn't support the multi-key sort_keys attribute.  The try-except construct should be removed at some point in the future, when caldav 0.5 is released.
