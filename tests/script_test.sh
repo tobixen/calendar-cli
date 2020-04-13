@@ -25,7 +25,7 @@ calendar_cli() {
 
 ## CLEANUP from earlier failed test runs
 
-for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
+for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=4 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 calendar_cli todo --categories scripttest delete
 
 ## TESTING

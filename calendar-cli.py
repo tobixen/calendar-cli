@@ -35,13 +35,13 @@ import sys
 import re
 import urllib3
 from getpass import getpass
+from caldav.lib.python_utilities import to_normal_str
 
 ## ref https://github.com/tobixen/calendar-cli/issues/33, python3-compatibility
 try:
     raw_input
 except NameError:
     raw_input = input
-    sys.stderr.write("here be dragons - calendar-cli is not properly tested for python3.  See https://github.com/tobixen/calendar-cli/issues/33")
 
 try:
     unicode
@@ -526,7 +526,7 @@ def calendar_agenda(caldav_conn, args):
             ## TODO: this will probably break and is probably moot on python3?
             for attr in vcal_txt_one + ['summary']:
                 if isinstance(event[attr], unicode):
-                    event[attr] = event[attr].encode('utf-8')
+                    event[attr] = to_normal_str(event[attr])
             print(args.event_template.format(**event))
 
 def todo_select(caldav_conn, args):
@@ -670,7 +670,7 @@ def todo_list(caldav_conn, args):
             t['uid'] = task.instance.vtodo.uid.value
             ## TODO: this will probably break and is probably moot on python3?
             if hasattr(t['summary'], 'encode') and isinstance(t['summary'], unicode):
-                t['summary'] = t['summary'].encode('utf-8')
+                t['summary'] = to_normal_str(t['summary'])
             print(args.todo_template.format(**t))
 
 def todo_complete(caldav_conn, args):
