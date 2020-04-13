@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 calendar-cli.py - high-level cli against caldav servers
@@ -809,6 +809,7 @@ def main():
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
     parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
     parser.add_argument("--ignoremethod", help="Ignores METHOD property if exists in the request. This violates RFC4791 but is sometimes appended by some calendar servers", action="store_true")
+    parser.set_defaults(print_help=parser.print_help)
 
     ## TODO: check sys.argv[0] to find command
     ## TODO: set up logging
@@ -835,6 +836,7 @@ def main():
     #todo_parser.add_argument('--priority', ....)
     #todo_parser.add_argument('--sort-by', ....)
     #todo_parser.add_argument('--due-before', ....)
+    todo_parser.set_defaults(print_help=todo_parser.print_help)
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
     todo_add_parser = todo_subparsers.add_parser('add')
     todo_add_parser.add_argument('summaryline', nargs='+')
@@ -878,12 +880,14 @@ def main():
 
     ## journal
     journal_parser = subparsers.add_parser('journal')
+    journal_parser.set_defaults(print_help=journal_parser.print_help)
     journal_subparsers = journal_parser.add_subparsers(title='journal subcommand')
     journal_add_parser = journal_subparsers.add_parser('add')
     journal_add_parser.add_argument('summaryline', nargs='+')
     journal_add_parser.set_defaults(func=journal_add)
 
     calendar_parser = subparsers.add_parser('calendar')
+    calendar_parser.set_defaults(print_help=calendar_parser.print_help)
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
@@ -937,7 +941,14 @@ Have you set up a config file? Read the doc or ...
     if args.ssl_verify_cert == 'no':
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    ret = args.func(caldav_conn, args)
+    if hasattr(args, 'func'):
+        return args.func(caldav_conn, args)
+    else:
+        ## We get here if a subcommand is not given - in that case we should print a friendly
+        ## help message.  With python2 this goes automatically, with python3 we get here.
+        ## ref https://stackoverflow.com/a/22994500 subcommands are by default not required anymore
+        ## in python3.  However, setting required=True gave a traceback rather than a friendly error message.
+        args.print_help()
 
 if __name__ == '__main__':
     main()
