@@ -35,7 +35,15 @@ import sys
 import re
 import urllib3
 from getpass import getpass
-from caldav.lib.python_utilities import to_normal_str
+from six import PY3
+
+def to_normal_str(text):
+    if PY3 and text and not isinstance(text, str):
+        text = text.decode('utf-8')
+    elif not PY3 and text and not isinstance(text, str):
+        text = text.encode('utf-8')
+    return text
+
 
 ## ref https://github.com/tobixen/calendar-cli/issues/33, python3-compatibility
 try:

@@ -42,7 +42,8 @@ setup(
         'icalendar',
         'caldav>=0.5.0',
         'pytz',
-        'tzlocal'
+        'tzlocal',
+        'six'
     ],
    **metadata
 )
