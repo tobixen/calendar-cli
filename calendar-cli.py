@@ -428,7 +428,7 @@ def todo_add(caldav_conn, args):
                 val = dateutil.parser.parse(getattr(args, 'set_'+setarg))
             else:
                 val = getattr(args, 'set_'+setarg)
-        todo.add(setarg, val)
+            todo.add(setarg, val)
     todo.add('uid', str(uid))
     todo.add('summary', ' '.join(args.summaryline))
     todo.add('status', 'NEEDS-ACTION')
