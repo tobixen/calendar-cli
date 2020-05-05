@@ -372,22 +372,8 @@ def calendar_delete(caldav_conn, args):
         event = cal.event_by_uid(args.event_uid)
     elif args.event_url:
         event = cal.event_by_url(args.event_url)
-    elif args.event_timestamp:
-        raise NotImplementedError("this hasn't been implemented yet - see code comments")
-        ## It seems that at least DAViCal requires the end of the
-        ## search to be beyond the event dtend, which makes deletion
-        ## by event_timestamp a bit more complex to implement.
-        dtstart = dateutil.parser.parse(args.event_timestamp)
-        #dtend = dtstart + timedelta(1,0,0,1)
-        events = cal.date_search(dtstart, dtend)
-        if len(events)>1:
-            raise NotImplementedError("Several events found with that timestamp; cowardly refusing to delete anything")
-        elif not len(events):
-            raise caldav.lib.error.NotFoundError("Couldn't find any event at %s" % dtstart)
-        else:
-            event = events[0]
     else:
-        raise ValueError("Event deletion failed: either uid, url or timestamp is needed")
+        raise ValueError("Event deletion failed: either uid or url is needed")
     event.delete()
 
 def journal_add(caldav_conn, args):
@@ -922,7 +908,6 @@ def main():
     calendar_delete_parser = calendar_subparsers.add_parser('delete')
     calendar_delete_parser.add_argument('--event-uid')
     calendar_delete_parser.add_argument('--event-url')
-    calendar_delete_parser.add_argument('--event-timestamp')
     calendar_delete_parser.set_defaults(func=calendar_delete)
 
     args = parser.parse_args(remaining_argv)
