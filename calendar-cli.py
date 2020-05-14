@@ -93,7 +93,7 @@ def _force_datetime(t, args):
     if type(t) == date:
         t = datetime(t.year, t.month, t.day)
     if t.tzinfo is None:
-        return t.replace(tzinfo=_tz(args))
+        return t.replace(tzinfo=_tz(args.timezone))
     return t
 
 def _now():
@@ -102,9 +102,9 @@ def _now():
     """
     return datetime.utcnow().replace(tzinfo=pytz.utc)
 
-def _tz(args):
-    if args.timezone:
-        return pytz.timezone(args.timezone)
+def _tz(timezone=None):
+    if timezone:
+        return pytz.timezone(timezone)
     else:
         return tzlocal.get_localzone()
 
@@ -477,22 +477,18 @@ def calendar_agenda(caldav_conn, args):
         for ical in events_:
             print(ical.data).encode('utf-8').strip()
     else:
-        ## flatten. A recurring event may be a list of events.
-        ## jeez ... zimbra and DaviCal does completely different things here
-        ## (wonder if we ought to push some logic over to the caldav library)
         for event_cal in events_:
-            if hasattr(event_cal.instance, 'vcalendar'):
-                events__ = event_cal.instance.components()
-            elif hasattr(event_cal.instance, 'vevent'):
-                events__ = [ event_cal.instance.vevent ]
+            if hasattr(event_cal.instance, 'vtimezone'):
+                tzinfo = event_cal.instance.vtimezone
             else:
-                raise Exception("Panic")
+                tzinfo = args.timezone
+            events__ = event_cal.instance.components()
             for event in events__:
                     dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                     if not isinstance(dtstart, datetime):
                         dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                     if not dtstart.tzinfo:
-                        dtstart = _tz(args).localize(dtstart)
+                        dtstart = _tz(args.timezone).localize(dtstart)
                     events.append({'dtstart': dtstart, 'instance': event})
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
         ## this will probably cause regression on sufficiently old versions of python
