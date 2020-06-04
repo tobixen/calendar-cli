@@ -2,7 +2,7 @@
 
 """
 calendar-cli.py - high-level cli against caldav servers
-Copyright (C) 2013-2019 Tobias Brox and other contributors
+Copyright (C) 2013-2020 Tobias Brox and other contributors
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -149,9 +149,12 @@ def find_calendar(caldav_conn, args):
         if '/' in args.calendar_url:
             return caldav.Calendar(client=caldav_conn, url=args.calendar_url)
         else:
-            return caldav.Principal(caldav_conn).calendar(name=args.calendar_url)
+            return caldav.Principal(caldav_conn).calendar(cal_id=args.calendar_url)
     else:
         ## Find default calendar
+        calendars = caldav.Principal(caldav_conn).calendars()
+        if not calendars:
+            sys.stderr.write("no calendar url given and no default calendar found - can't proceed.  You will need to create a calendar first")
         return caldav.Principal(caldav_conn).calendars()[0]
 
 def _calendar_addics(caldav_conn, ics, uid, args):
@@ -523,6 +526,16 @@ def calendar_agenda(caldav_conn, args):
                     event[attr] = to_normal_str(event[attr])
             print(args.event_template.format(**event))
 
+def create_calendar(caldav_conn, args):
+    cal_obj = caldav.Principal(caldav_conn).make_calendar(cal_id=args.cal_id)
+    if cal_obj:
+        print("Created a calendar with id " + args.cal_id)
+
+def create_tasklist(caldav_conn, args):
+    cal_obj = caldav.Principal(caldav_conn).make_calendar(cal_id=args.cal_id, supported_calendar_component_set=['VTODO'])
+    if cal_obj:
+        print("Created a task list with id " + args.tasklist_id)
+
 def todo_select(caldav_conn, args):
     if args.top+args.limit+args.offset+args.offsetn and args.todo_uid:
         raise ValueError("It doesn't make sense to combine --todo-uid with --top/--limit/--offset/--offsetn")
@@ -832,6 +845,10 @@ def main():
     #todo_parser.add_argument('--due-before', ....)
     todo_parser.set_defaults(print_help=todo_parser.print_help)
     todo_subparsers = todo_parser.add_subparsers(title='tasks subcommand')
+    todo_create_parser = todo_subparsers.add_parser('createlist')
+    todo_create_parser.add_argument('tasklist_id')
+    todo_create_parser.set_defaults(func=create_tasklist)
+
     todo_add_parser = todo_subparsers.add_parser('add')
     todo_add_parser.add_argument('summaryline', nargs='+')
     todo_add_parser.add_argument('--set-dtstart', default=date.today()+timedelta(1))
@@ -883,6 +900,11 @@ def main():
     calendar_parser = subparsers.add_parser('calendar')
     calendar_parser.set_defaults(print_help=calendar_parser.print_help)
     calendar_subparsers = calendar_parser.add_subparsers(title='cal subcommand')
+
+    calendar_create_parser = calendar_subparsers.add_parser('create')
+    calendar_create_parser.add_argument('cal_id')
+    calendar_create_parser.set_defaults(func=create_calendar)
+
     calendar_add_parser = calendar_subparsers.add_parser('add')
     calendar_add_parser.add_argument('event_time', help="Timestamp and duration of the event.  See the documentation for event_time specifications")
     calendar_add_parser.add_argument('summary', nargs='+')

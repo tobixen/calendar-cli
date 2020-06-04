@@ -1,20 +1,18 @@
 #!/bin/bash
 
-## Sorry - I have no idea how much of this script is compatible with
-## POSIX shell and how much is bashisms ... been using bash for too
-## long.
-
 set -e
 
+########################################################################
 ## SETUP
+########################################################################
 
 error() {
     echo "$1"
     exit 255
 }
 
-[ -x ./calendar-cli.py ] && calendar_cli=./calendar-cli.py
-[ -x ../calendar-cli.py ] && calendar_cli=../calendar-cli.py
+[ -z "$calendar_cli" ] && [ -x ./calendar-cli.py ] && calendar_cli=./calendar-cli.py
+[ -z "$calendar_cli" ] && [ -x ../calendar-cli.py ] && calendar_cli=../calendar-cli.py
 [ -z "$calendar_cli" ] && error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
 
 calendar_cli() {
@@ -28,7 +26,9 @@ calendar_cli() {
 for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=4 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 calendar_cli todo --categories scripttest delete
 
-## TESTING
+########################################################################
+## TEST CODE FOLLOWS
+########################################################################
 
 ## EVENTS
 
@@ -36,12 +36,16 @@ echo "## testing $calendar_cli"
 echo "## this is a very simple test script without advanced error handling"
 echo "## if this test script doesn't output 'all tests completed' in the end, something went wrong"
 
-echo "## Attempting to add a past event at 2010-10-09 20:00:00, 2 hours duration"
+echo "## Attempting to add an event at 2010-10-09 20:00:00, 2 hours duration"
 calendar_cli calendar add '2010-10-09 20:00:00+2h' 'testing testing'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-echo "## Attempting to add a past event at 2010-10-10 20:00:00, CET (1 hour duration is default)"
+[ -n "$uid" ] || error "got no UID back"
+
+echo "## Attempting to add an event at 2010-10-10 20:00:00, CET (1 hour duration is default), with description and non-ascii location"
 calendar_cli calendar add '2010-10-10 20:00:00+01:00' 'testing testing' --set-description='this is a test calendar event' --set-location='Москва'
 uid2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+[ -n "$uid2" ] || error "got no UID back"
+
 echo "## Attempting to add a past event at 2010-10-11 20:00:00, CET, 3h duration"
 calendar_cli calendar add '2010-10-11 20:00:00+01:00+3h' 'testing testing'
 uid3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
