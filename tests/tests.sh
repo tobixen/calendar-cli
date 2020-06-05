@@ -21,7 +21,7 @@ calendar_cli() {
     [ -z "$output" ] || echo $output
 }
 
-## CLEANUP from earlier failed test runs
+echo "## CLEANUP from earlier failed test runs"
 
 for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=4 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 calendar_cli todo --categories scripttest delete
@@ -30,7 +30,7 @@ calendar_cli todo --categories scripttest delete
 ## TEST CODE FOLLOWS
 ########################################################################
 
-## EVENTS
+echo "## EVENTS"
 
 echo "## testing $calendar_cli"
 echo "## this is a very simple test script without advanced error handling"
