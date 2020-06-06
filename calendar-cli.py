@@ -494,12 +494,14 @@ def calendar_agenda(caldav_conn, args):
                 tzinfo = args.timezone
             events__ = event_cal.instance.components()
             for event in events__:
-                    dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
-                    if not isinstance(dtstart, datetime):
-                        dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
-                    if not dtstart.tzinfo:
-                        dtstart = _tz(args.timezone).localize(dtstart)
-                    events.append({'dtstart': dtstart, 'instance': event})
+                if event.name != 'vevent':
+                    continue
+                dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
+                if not isinstance(dtstart, datetime):
+                    dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
+                if not dtstart.tzinfo:
+                    dtstart = _tz(args.timezone).localize(dtstart)
+                events.append({'dtstart': dtstart, 'instance': event})
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
         ## this will probably cause regression on sufficiently old versions of python
         events.sort(key=lambda a: a['dtstart'])
