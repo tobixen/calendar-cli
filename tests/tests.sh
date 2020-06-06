@@ -67,6 +67,19 @@ echo "## Searching again for the deleted event"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1
 echo $output | { grep -q 'testing testing' && echo "## FAIL: still found the event" ; } || echo "## OK: didn't find the event"
 
+echo "## Adding a full day event"
+calendar_cli calendar add --whole-day '2010-10-10+3d' 'whole day testing'
+uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+[ -n "$uid" ] || error "got no UID back"
+
+echo "## fetching the full day event, in ics format"
+calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+echo "$output" | grep -q "whole day" || error "could not find the event"
+echo "OK: found the event"
+
+calendar_cli calendar delete --event-uid=$uid
+
+
 ## TODOS / TASK LISTS
 
 echo "## Attempting to add a task with category 'scripttest'"
