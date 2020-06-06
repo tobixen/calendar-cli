@@ -324,7 +324,6 @@ def calendar_add(caldav_conn, args):
     cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
     cal.add('version', '2.0')
     event = Event()
-    ## TODO: timezone
     ## read timestamps from arguments
     event_spec = args.event_time.split('+')
     if len(event_spec)>3:
@@ -343,7 +342,7 @@ def calendar_add(caldav_conn, args):
         event_duration = '1h'
     ## TODO: error handling
     event_duration_secs = int(event_duration[:-1]) * time_units[event_duration[-1:]]
-    dtstart = dateutil.parser.parse(event_spec[0])
+    dtstart = dateutil.parser.parse(event_spec[0], ignoretz=True)
     if (args.whole_day or
         (event_duration_secs % (60*60*24) == 0 and
          dtstart.time() == time_(0,0))):
@@ -357,6 +356,7 @@ def calendar_add(caldav_conn, args):
         event.add('dtstart', _date(dtstart.date()))
         event.add('dtend', _date(dtend.date()))
     else:
+        dtstart = _tz(args.timezone).localize(dtstart)
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))

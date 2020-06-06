@@ -94,8 +94,35 @@ echo "$output" | grep -q "20101013" || error "could not find the date"
 echo "$output" | grep -q "20101013T" && error "a supposed whole day event was found to be with the time of day"
 echo "OK: found the event"
 
+echo "## cleanup, delete it"
+calendar_cli calendar delete --event-uid=$uid
 
-## TODOS / TASK LISTS
+echo "## testing timezone support"
+echo "## Create a UTC event"
+calendar_cli --timezone='UTC' calendar add '2010-10-09 12:00:00+2h' 'testevent with a UTC timezone'
+uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+[ -n "$uid" ] || error "got no UID back"
+
+echo "## fetching the UTC-event, as ical data"
+calendar_cli --icalendar calendar agenda --from-time=2010-10-08 --agenda-days=3
+echo "$output" | grep -q "20101009T120000Z" || error "failed to find the UTC timestamp.  Perhaps the server is yielding timezone data for the UTC timezone?  In that case, the assert in the test code should be adjusted"
+
+echo "## cleanup, delete it"
+calendar_cli calendar delete --event-uid=$uid
+
+echo "## Create an event with a somewhat remote time zone, west of UTC"
+calendar_cli --timezone='Brazil/DeNoronha' calendar add '2010-10-09 12:00:00+2h' 'testevent with a time zone west of UTC'
+uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+[ -n "$uid" ] || error "got no UID back"
+
+echo "## fetching the UTC-event, as ical data"
+calendar_cli --icalendar calendar agenda --from-time=2010-10-08 --agenda-days=3
+echo "$output" | grep -q "TZID=Brazil" || error "failed to find the Brazilian timezone. perhaps the server is yielding an UTC timestamp?  In that case, the assert in the test code should be adjusted."
+
+echo "## cleanup, delete it"
+calendar_cli calendar delete --event-uid=$uid
+
+echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
 calendar_cli todo add --set-categories scripttest "edit this task"
