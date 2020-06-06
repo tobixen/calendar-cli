@@ -347,7 +347,6 @@ def calendar_add(caldav_conn, args):
         if event_spec[1][-1:] != 'd':
             raise ValueError('Duration of whole-day event must be multiple of 1d')
         duration = int(event_spec[1][:-1])
-        dtstart = dateutil.parser.parse(event_spec[0])
         dtend = dtstart + timedelta(days=duration)
         event.add('dtstart', _date(dtstart.date()))
         event.add('dtend', _date(dtend.date()))
@@ -478,7 +477,7 @@ def calendar_agenda(caldav_conn, args):
     events = []
     if args.icalendar:
         for ical in events_:
-            print(ical.data).encode('utf-8').strip()
+            print(to_normal_str(ical.data).strip())
     else:
         for event_cal in events_:
             if hasattr(event_cal.instance, 'vtimezone'):
