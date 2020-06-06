@@ -489,18 +489,23 @@ def calendar_agenda(caldav_conn, args):
     else:
         for event_cal in events_:
             if hasattr(event_cal.instance, 'vtimezone'):
-                tzinfo = event_cal.instance.vtimezone
+                ## i'm not sure this is useful
+                tzinfo = event_cal.instance.vtimezone.gettzinfo()
             else:
-                tzinfo = args.timezone
+                tzinfo = _tz(args.timezone)
             events__ = event_cal.instance.components()
             for event in events__:
-                if event.name != 'vevent':
+                if event.name != 'VEVENT':
                     continue
                 dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                 if not isinstance(dtstart, datetime):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
-                if not dtstart.tzinfo:
-                    dtstart = _tz(args.timezone).localize(dtstart)
+                else:
+                    if not dtstart.tzinfo:
+                        dtstart.localize(tzinfo)
+                    ## convert into timezone given in args:
+                    dtstart = dtstart.astimezone(_tz(args.timezone))
+                        
                 events.append({'dtstart': dtstart, 'instance': event})
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
         ## this will probably cause regression on sufficiently old versions of python

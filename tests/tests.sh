@@ -116,9 +116,17 @@ calendar_cli --timezone='Brazil/DeNoronha' calendar add '2010-10-09 12:00:00+2h'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
-echo "## fetching the UTC-event, as ical data"
+echo "## fetching the remote time zone event, as ical data"
 calendar_cli --icalendar --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3
-echo "$output" | grep -q "TZID=Brazil" || error "failed to find the Brazilian timezone. perhaps the server is yielding an UTC timestamp?  In that case, the assert in the test code should be adjusted."
+echo "$output" | grep -q "TZID=Brazil" || error "failed to find the remote timezone. perhaps the server is yielding '1400Z' instead?  In that case, the assert in the test code should be adjusted."
+
+echo "## fetching the remote time zone event, in UTC-time"
+calendar_cli --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3 --event-template='{dtstart}'
+[ "$output" == '2010-10-09 14:00 (Sat)' ] || error "expected dtstart to be 2010-10-09 14:00 (Sat)"
+
+echo "## fetching the remote time zone event, in CET-time (UTC+2 with DST, and October is defined as summer in Oslo, weird)"
+calendar_cli --timezone=Europe/Oslo calendar agenda --from-time='2010-10-09 15:59' --agenda-mins=3 --event-template='{dtstart}'
+[ "$output" == '2010-10-09 16:00 (Sat)' ] || error "expected dtstart to be 2010-10-09 15:00 (Sat)"
 
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
