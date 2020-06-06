@@ -468,10 +468,12 @@ def calendar_agenda(caldav_conn, args):
 
     if args.from_time:
         dtstart = dateutil.parser.parse(args.from_time)
+        dtstart = _tz(args.timezone).localize(dtstart)
     else:
         dtstart = _now()
     if args.to_time:
         dtend = dateutil.parser.parse(args.to_time)
+        dtend = _tz(args.timezone).localize(dtend)
     elif args.agenda_mins:
         dtend = dtstart + timedelta(minutes=args.agenda_mins)
     elif args.agenda_days:

@@ -104,7 +104,8 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
 echo "## fetching the UTC-event, as ical data"
-calendar_cli --icalendar calendar agenda --from-time=2010-10-08 --agenda-days=3
+calendar_cli --icalendar --timezone=UTC calendar agenda --from-time='2010-10-09 11:59' --agenda-mins=3
+[ -n "$output" ] || error "failed to find the event that was just added"
 echo "$output" | grep -q "20101009T120000Z" || error "failed to find the UTC timestamp.  Perhaps the server is yielding timezone data for the UTC timezone?  In that case, the assert in the test code should be adjusted"
 
 echo "## cleanup, delete it"
@@ -116,7 +117,7 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
 echo "## fetching the UTC-event, as ical data"
-calendar_cli --icalendar calendar agenda --from-time=2010-10-08 --agenda-days=3
+calendar_cli --icalendar --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3
 echo "$output" | grep -q "TZID=Brazil" || error "failed to find the Brazilian timezone. perhaps the server is yielding an UTC timestamp?  In that case, the assert in the test code should be adjusted."
 
 echo "## cleanup, delete it"
