@@ -34,7 +34,7 @@ echo "## EVENTS"
 
 echo "## testing $calendar_cli"
 echo "## this is a very simple test script without advanced error handling"
-echo "## if this test script doesn't output 'all tests completed' in the end, something went wrong"
+echo "## if this test script doesn't output 'ALL TESTS COMPLETED!  YAY!' in the end, something went wrong"
 
 echo "## Attempting to add an event at 2010-10-09 20:00:00, 2 hours duration"
 calendar_cli calendar add '2010-10-09 20:00:00+2h' 'testing testing'
@@ -46,7 +46,7 @@ calendar_cli calendar add '2010-10-10 20:00:00+01:00' 'testing testing' --set-de
 uid2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid2" ] || error "got no UID back"
 
-echo "## Attempting to add a past event at 2010-10-11 20:00:00, CET, 3h duration"
+echo "## Attempting to add an event at 2010-10-11 20:00:00, CET, 3h duration"
 calendar_cli calendar add '2010-10-11 20:00:00+01:00+3h' 'testing testing'
 uid3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## OK: Added the event, uid is $uid"
@@ -181,4 +181,4 @@ calendar_cli todo --hide-parents --categories scripttest complete
 calendar_cli todo --hide-parents --categories scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
 
-echo "## all tests completed"
+echo "## ALL TESTS COMPLETED!  YAY!"

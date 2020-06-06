@@ -1,6 +1,6 @@
-## Eventually I'd like to make calendar-cli easier to use, so some of the "external logic" in those examples will eventually be moved into the tool itself.  Anyway, some of the power of having a command-line utility is that it's possible to do just anything ...
+## This was my daily task management workflow for a while.
 
-## TODO: still some hard-coded personal stuff in the script.  Should move it out to a config section.
+## Eventually I'd like to make calendar-cli easier to use, so some of the "external logic" in those examples will eventually be moved into the tool itself.  Anyway, some of the power of having a command-line utility is that it's possible to do just anything ...
 
 [ -z "$EDITOR" ] && EDITOR=vi
 
