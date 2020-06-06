@@ -23,6 +23,7 @@ import pytz
 import tzlocal
 import time
 from datetime import datetime, timedelta, date
+from datetime import time as time_
 import dateutil.parser
 from dateutil.rrule import rrulestr
 from icalendar import Calendar,Event,Todo,Journal,Alarm
@@ -343,10 +344,15 @@ def calendar_add(caldav_conn, args):
     ## TODO: error handling
     event_duration_secs = int(event_duration[:-1]) * time_units[event_duration[-1:]]
     dtstart = dateutil.parser.parse(event_spec[0])
-    if args.whole_day:
-        if event_spec[1][-1:] != 'd':
+    if (args.whole_day or
+        (event_duration_secs % (60*60*24) == 0 and
+         dtstart.time() == time_(0,0))):
+        
+        ## allowing 1 second off due to leap seconds
+        if (event_duration_secs+1) % (60*60*24) > 2:
             raise ValueError('Duration of whole-day event must be multiple of 1d')
-        duration = int(event_spec[1][:-1])
+        
+        duration = event_duration_secs//60//60//24
         dtend = dtstart + timedelta(days=duration)
         event.add('dtstart', _date(dtstart.date()))
         event.add('dtend', _date(dtend.date()))
