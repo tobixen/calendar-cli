@@ -68,7 +68,7 @@ calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1
 echo $output | { grep -q 'testing testing' && echo "## FAIL: still found the event" ; } || echo "## OK: didn't find the event"
 
 echo "## Adding a full day event"
-calendar_cli calendar add --whole-day '2010-10-10+3d' 'whole day testing'
+calendar_cli calendar add --whole-day '2010-10-10+4d' 'whole day testing'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
@@ -87,8 +87,17 @@ calendar_cli calendar add '2010-10-10+3d' 'whole day testing'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
-echo "## fetching the full day event, in ics format"
+echo "## check for a date range bug"
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+## the 3 day event should be over 10th, 11th and 12th of October, not over 13th of October, so if we get this one out it's actually a server bug?  Or a timezone bug?
+if [ -n "$output" ];
+then
+   echo "WARNING: We got out an event here, even though we probably shouldn't.  A bug on the server side, calendar-cli side or python caldav side?  Should be investigated!  Ref https://github.com/tobixen/calendar-cli/issues/74"
+fi
+
+echo "## fetching the full day event, in ics format"
+calendar_cli  --icalendar calendar agenda --from-time=2010-10-12 --agenda-days=1
+
 echo "$output" | grep -q "whole day" || error "could not find the event"
 echo "$output" | grep -q "20101010" || error "could not find the date"
 echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
@@ -118,7 +127,8 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## fetching the remote time zone event, as ical data"
 calendar_cli --icalendar --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3
-echo "$output" | grep -q "TZID=Brazil" || echo "$output" | grep -q "140000Z" ||
+## zimbra changes Brazil/DeNoronha to America/Noronha.  Actually, the server may theoretically use arbitrary IDs for the timezones.
+echo "$output" | grep -Eq "TZID=\"?[a-zA-Z/]*Noronha" || echo "$output" | grep -q "140000Z" ||
     error "failed to find the remote timezone"
 
 echo "## fetching the remote time zone event, in UTC-time"
@@ -136,6 +146,7 @@ echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
 calendar_cli todo add --set-categories scripttest "edit this task"
+echo test
 uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
