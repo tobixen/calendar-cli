@@ -23,7 +23,7 @@ calendar_cli() {
 
 echo "## CLEANUP from earlier failed test runs"
 
-for uid in $($calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=4 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
+for uid in $($calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=5 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 calendar_cli todo --categories scripttest delete
 
 ########################################################################
@@ -75,8 +75,8 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## fetching the full day event, in ics format"
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
 echo "$output" | grep -q "whole day" || error "could not find the event"
-echo "$output" | grep -q "20101013" || error "could not find the date"
-echo "$output" | grep -q "20101013T" && error "a supposed whole day event was found to be with the time of day"
+echo "$output" | grep -q "20101010" || error "could not find the date"
+echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
 echo "OK: found the event"
 
 echo "## cleanup, delete it"
@@ -90,8 +90,8 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## fetching the full day event, in ics format"
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
 echo "$output" | grep -q "whole day" || error "could not find the event"
-echo "$output" | grep -q "20101013" || error "could not find the date"
-echo "$output" | grep -q "20101013T" && error "a supposed whole day event was found to be with the time of day"
+echo "$output" | grep -q "20101010" || error "could not find the date"
+echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
 echo "OK: found the event"
 
 echo "## cleanup, delete it"
@@ -99,7 +99,7 @@ calendar_cli calendar delete --event-uid=$uid
 
 echo "## testing timezone support"
 echo "## Create a UTC event"
-calendar_cli --timezone='UTC' calendar add '2010-10-09 12:00:00+2h' 'testevent with a UTC timezone'
+calendar_cli --timezone='UTC' calendar add '2010-10-09 12:00:00+10m' 'testevent with a UTC timezone'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
@@ -112,13 +112,14 @@ echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
 
 echo "## Create an event with a somewhat remote time zone, west of UTC"
-calendar_cli --timezone='Brazil/DeNoronha' calendar add '2010-10-09 12:00:00+2h' 'testevent with a time zone west of UTC'
+calendar_cli --timezone='Brazil/DeNoronha' calendar add '2010-10-09 12:00:00+10m' 'testevent with a time zone west of UTC'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
 echo "## fetching the remote time zone event, as ical data"
 calendar_cli --icalendar --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3
-echo "$output" | grep -q "TZID=Brazil" || error "failed to find the remote timezone. perhaps the server is yielding '1400Z' instead?  In that case, the assert in the test code should be adjusted."
+echo "$output" | grep -q "TZID=Brazil" || echo "$output" | grep -q "140000Z" ||
+    error "failed to find the remote timezone"
 
 echo "## fetching the remote time zone event, in UTC-time"
 calendar_cli --timezone=UTC calendar agenda --from-time='2010-10-09 13:59' --agenda-mins=3 --event-template='{dtstart}'
