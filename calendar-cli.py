@@ -502,7 +502,7 @@ def calendar_agenda(caldav_conn, args):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                 else:
                     if not dtstart.tzinfo:
-                        dtstart.localize(tzinfo)
+                        tzinfo.localize(dtstart)
                     ## convert into timezone given in args:
                     dtstart = dtstart.astimezone(_tz(args.timezone))
                         
@@ -874,7 +874,7 @@ def main():
     todo_add_parser.set_defaults(func=todo_add)
 
     todo_list_parser = todo_subparsers.add_parser('list')
-    todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passedmark} {due}{due_passed_mark} {summary}")
+    todo_list_parser.add_argument('--todo-template', help="Template for printing out the event", default="{dtstart}{dtstart_passed_mark} {due}{due_passed_mark} {summary}")
     todo_list_parser.add_argument('--default-due', help="If a task has no due date set, list it with the due date set N days from today", type=int, default=14)
     todo_list_parser.add_argument('--list-categories', help="Instead of listing the todo-items, list the unique categories used", action='store_true')
     todo_list_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%Y-%m-%d (%a)")
