@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 """
 calendar-cli.py - high-level cli against caldav servers
@@ -176,8 +176,7 @@ def _calendar_addics(caldav_conn, ics, uid, args):
     try:
         c = find_calendar(caldav_conn, args)
         ## unicode strings vs byte strings is a minefield in python3 ... so, re.search demands a string here ...
-        if hasattr(ics, 'decode'):
-            ics = ics.decode('utf-8')
+        ics = to_normal_str(ics)
         if re.search(r'^METHOD:[A-Z]+[\r\n]+',ics,flags=re.MULTILINE) and args.ignoremethod:
             ics = re.sub(r'^METHOD:[A-Z]+[\r\n]+', '', ics, flags=re.MULTILINE)
             print ("METHOD property found and ignored")
@@ -666,7 +665,7 @@ def todo_list(caldav_conn, args):
     tasks = todo_select(caldav_conn, args)
     if args.icalendar:
         for ical in tasks:
-            print(ical.data.encode('utf-8'))
+            print(to_normal_str(ical.data))
     elif args.list_categories:
         categories = set()
         for task in tasks:
@@ -688,9 +687,7 @@ def todo_list(caldav_conn, args):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
                     break
             t['uid'] = task.instance.vtodo.uid.value
-            ## TODO: this will probably break and is probably moot on python3?
-            if hasattr(t['summary'], 'encode') and isinstance(t['summary'], unicode):
-                t['summary'] = to_normal_str(t['summary'])
+            t['summary'] = to_normal_str(t['summary'])
             print(args.todo_template.format(**t))
 
 def todo_complete(caldav_conn, args):
