@@ -1,7 +1,7 @@
 calendar-cli
 ============
 
-Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.  As of version 0.11 it's even becoming a full-fledged task management tool.
+Simple command-line CalDav client, making it possible to add calendar events, browse an agenda and doing task management towards a caldav server.
 
 Other tools
 -----------
@@ -110,6 +110,8 @@ In the examples folder there is a task management script which will use the --to
 ### Task management
 
 With the todo-command, there are quite some options available (i.e. --categories, --limit, --todo-uid, etc) to select or filter tasks.  Those are used by the commands list, edit, postpone, complete and delete.  A typical use-case scenario is to first use the "list" command, tweak the filtering options to get a list containing the tasks one wants to operate with, and then use either edit, postpone, complete or delete.
+
+The file TASK_MANAGEMENT.md contains some thoughts on how to organize tasks.
 
 Configuration file
 ------------------
