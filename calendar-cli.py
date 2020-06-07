@@ -371,7 +371,10 @@ def calendar_add(caldav_conn, args):
             event.add(attr, val)
     event.add('summary', ' '.join(args.summary))
     cal.add_component(event)
-    _calendar_addics(caldav_conn, cal.to_ical(), uid, args)
+    ## workaround for getting RFC-compliant ical data,
+    ## ref https://github.com/collective/icalendar/issues/272#issuecomment-640204031
+    ical_data = vobject.readOne(cal.to_ical().decode('utf-8')).serialize()
+    _calendar_addics(caldav_conn, ical_data, uid, args)
     print("Added event with uid=%s" % uid)
 
 def calendar_delete(caldav_conn, args):
