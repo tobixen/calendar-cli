@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 calendar-cli.py - high-level cli against caldav servers
@@ -507,8 +507,8 @@ def calendar_agenda(caldav_conn, args):
                     dtstart = tzinfo.localize(dtstart)
                 ## convert into timezone given in args:
                 dtstart = dtstart.astimezone(_tz(args.timezone))
-                        
                 events.append({'dtstart': dtstart, 'instance': event})
+
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
         ## this will probably cause regression on sufficiently old versions of python
         events.sort(key=lambda a: a['dtstart'])
