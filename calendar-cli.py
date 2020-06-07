@@ -502,7 +502,7 @@ def calendar_agenda(caldav_conn, args):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                 else:
                     if not dtstart.tzinfo:
-                        tzinfo.localize(dtstart)
+                        dtstart = tzinfo.localize(dtstart)
                     ## convert into timezone given in args:
                     dtstart = dtstart.astimezone(_tz(args.timezone))
                         
