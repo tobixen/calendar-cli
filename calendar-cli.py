@@ -27,6 +27,7 @@ from datetime import time as time_
 import dateutil.parser
 from dateutil.rrule import rrulestr
 from icalendar import Calendar,Event,Todo,Journal,Alarm
+import vobject
 import caldav
 import uuid
 import json

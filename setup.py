@@ -5,21 +5,12 @@ import os
 
 from setuptools import setup, find_packages
 
-## TODO: "import imp" will not work from python 3.3, ref
-## http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path.
-## Since we depend on caldav which depends on vobject which currently
-## doesn't support python3, it's not an issue right now.
-## but it is an issue that the purpose of this script is to enable installation of dependencies,
-## and if the dependencies doesn't exist, this import breaks!  TODO ...
+import calendar_cli as my_script
+
 metadata = {}
-import imp
-try:
-    my_script = imp.load_source('my_script', './calendar-cli.py')
-    for attribute in ('version', 'author', 'author_email', 'license'):
-        if hasattr(my_script, '__%s__' % attribute):
-            metadata[attribute] = getattr(my_script, '__%s__' % attribute)
-except:
-    pass
+for attribute in ('version', 'author', 'author_email', 'license'):
+    if hasattr(my_script, '__%s__' % attribute):
+        metadata[attribute] = getattr(my_script, '__%s__' % attribute)
 
 setup(
     name='calendar-cli',
