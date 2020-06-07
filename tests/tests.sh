@@ -87,14 +87,6 @@ calendar_cli calendar add '2010-10-10+3d' 'whole day testing'
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
-echo "## check for a date range bug"
-calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
-## the 3 day event should be over 10th, 11th and 12th of October, not over 13th of October, so if we get this one out it's actually a server bug?  Or a timezone bug?
-if [ -n "$output" ];
-then
-   echo "WARNING: We got out an event here, even though we probably shouldn't.  A bug on the server side, calendar-cli side or python caldav side?  Should be investigated!  Ref https://github.com/tobixen/calendar-cli/issues/74"
-fi
-
 echo "## fetching the full day event, in ics format"
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-12 --agenda-days=1
 
