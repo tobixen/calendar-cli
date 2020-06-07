@@ -504,11 +504,10 @@ def calendar_agenda(caldav_conn, args):
                 dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                 if not isinstance(dtstart, datetime):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
-                else:
-                    if not dtstart.tzinfo:
-                        dtstart = tzinfo.localize(dtstart)
-                    ## convert into timezone given in args:
-                    dtstart = dtstart.astimezone(_tz(args.timezone))
+                if not dtstart.tzinfo:
+                    dtstart = tzinfo.localize(dtstart)
+                ## convert into timezone given in args:
+                dtstart = dtstart.astimezone(_tz(args.timezone))
                         
                 events.append({'dtstart': dtstart, 'instance': event})
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.
