@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 """
-calendar-cli.py - high-level cli against caldav servers
+https://github.com/tobixen/calendar-cli/ - high-level cli against caldav servers
+
 Copyright (C) 2013-2020 Tobias Brox and other contributors
 
 This program is free software: you can redistribute it and/or modify

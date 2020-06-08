@@ -24,6 +24,8 @@ Installation
 
 calendar-cli depends on quite some python libraries, i.e. pytz, caldav, etc.  "sudo ./setup.py install" should take care of all those eventually.
 
+The calendar-cli executable can be executed as it is, or copied to /usr/bin.  Make sure to copy the content - as of v0.12, calendar-cli is actually a symlink to calendar_cli.py.  This mess will be fixed up in v1.0.
+
 Support
 -------
 
