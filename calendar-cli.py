@@ -350,6 +350,8 @@ def calendar_add(caldav_conn, args):
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))
+    if (args.private):
+        event.add('class', 'PRIVATE')
     event.add('dtstamp', _now())
     uid = uuid.uuid1()
     event.add('uid', str(uid))
@@ -910,6 +912,7 @@ def main():
     calendar_add_parser.add_argument('summary', nargs='+')
     calendar_add_parser.set_defaults(func=calendar_add)
     calendar_add_parser.add_argument('--whole-day', help='Whole-day event', action='store_true', default=False)
+    calendar_add_parser.add_argument('--private', help='Private event', action='store_true', default=False)
 
     for attr in vcal_txt_one + vcal_txt_many:
         calendar_add_parser.add_argument('--set-'+attr, help='Set '+attr)
