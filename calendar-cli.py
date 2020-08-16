@@ -103,6 +103,7 @@ def _tz(timezone=None):
 
 ## global constant
 ## (todo: this doesn't really work out that well, leap seconds/days are not considered, and we're missing the month unit)
+## (todo: Sebastian Brox has made some other code using regexps and dateutil.relativedelta, should consider to steal his code)
 time_units = {
     's': 1, 'm': 60, 'h': 3600,
     'd': 86400, 'w': 604800, 'y': 31536000
