@@ -497,7 +497,10 @@ def calendar_agenda(caldav_conn, args):
                 if not isinstance(dtstart, datetime):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                 if not dtstart.tzinfo:
-                    dtstart = tzinfo.localize(dtstart)
+                    try:
+                        dtstart = tzinfo.localize(dtstart)
+                    except AttributeError:
+                        dtstart.astimezone(tzinfo)
                 ## convert into timezone given in args:
                 dtstart = dtstart.astimezone(_tz(args.timezone))
                 events.append({'dtstart': dtstart, 'instance': event})
