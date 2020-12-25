@@ -48,7 +48,7 @@ try:
 except NameError:
     unicode = str
 
-__version__ = "0.12.0"
+__version__ = "0.12.1"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013-2020, Tobias Brox"
