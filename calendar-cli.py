@@ -148,9 +148,10 @@ def find_calendar(caldav_conn, args):
         calendars = caldav.Principal(caldav_conn).calendars()
         if not calendars:
             sys.stderr.write("no calendar url given and no default calendar found - can't proceed.  You will need to create a calendar first")
+            sys.exit(2)
         if len(calendars) > 1:
-            sys.stderr.write("no calendar url given and several calendars found - refusing to select one at random.  You will need to specify which one to use")
-        return caldav.Principal(caldav_conn).calendars()[0]
+            sys.stderr.write("no calendar url given and several calendars found; assuming the primary is %s" % calendars[0].url)
+        return calendars[0]
 
 def _calendar_addics(caldav_conn, ics, uid, args):
     """"
