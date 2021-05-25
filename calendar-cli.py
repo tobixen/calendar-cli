@@ -274,31 +274,43 @@ def interactive_config(args, config, remaining_argv):
     if not modified:
         print("No configuration changes have been done")
     else:
-        options = []
-        if section:
-            options.append(('save', 'save configuration into section %s' % section))
-        if backup or not section:
-            options.append(('save_other', 'add this new configuration into a new section in the configuration file'))
-        if remaining_argv:
-            options.append(('use', 'use this configuration without saving'))
-        options.append(('abort', 'abort without saving'))
-        print("CONFIGURATION DONE ...")
-        for o in options:
-            print("Type %s if you want to %s" % o)
-        cmd = raw_input("Enter a command: ")
-        if cmd in ('save', 'save_other'):
-            if cmd == 'save_other':
-                new_section = raw_input("New config section name: ")
-                config[new_section] = config[section]
-                if backup:
-                    config[section] = backup
+        state = 'start'
+        while state == 'start':
+            options = []
+            if section:
+                options.append(('save', 'save configuration into section %s' % section))
+            if backup or not section:
+                options.append(('save_other', 'add this new configuration into a new section in the configuration file'))
+            if remaining_argv:
+                options.append(('use', 'use this configuration without saving'))
+            options.append(('abort', 'abort without saving'))
+            print("CONFIGURATION DONE ...")
+            for o in options:
+                print("Type %s if you want to %s" % o)
+            cmd = raw_input("Enter a command: ")
+            if cmd in ('use', 'abort'):
+                state = 'done'
+            if cmd in ('save', 'save_other'):
+                if cmd == 'save_other':
+                    new_section = raw_input("New config section name: ")
+                    config[new_section] = config[section]
+                    if backup:
+                        config[section] = backup
+                    else:
+                        del config[section]
+                    section = new_section
+                try:
+                    if os.path.isfile(args.config_file):
+                        os.rename(args.config_file, "%s.%s.bak" % (args.config_file, int(time.time())))
+                    with open(args.config_file, 'w') as outfile:
+                        json.dump(config, outfile, indent=4)
+                except Exception as e:
+                    print(e)
                 else:
-                    del config[section]
-                section = new_section
-            if os.path.isfile(args.config_file):
-                os.rename(args.config_file, "%s.%s.bak" % (args.config_file, int(time.time())))
-            with open(args.config_file, 'w') as outfile:
-                json.dump(config, outfile, indent=4)
+                    print("Saved config")
+                    state = 'done'
+
+
 
 
     if args.config_section == 'default' and section != 'default':
