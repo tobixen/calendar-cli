@@ -51,7 +51,7 @@ except NameError:
 __version__ = "0.12.1"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
-__copyright__ = "Copyright 2013-2020, Tobias Brox"
+__copyright__ = "Copyright 2013-2021, Tobias Brox and contributors"
 #__credits__ = []
 __license__ = "GPLv3+"
 __license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
