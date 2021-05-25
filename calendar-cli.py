@@ -238,6 +238,7 @@ def interactive_config(args, config, remaining_argv):
 
     print("Welcome to the interactive calendar configuration mode")
     print("Warning - untested code ahead, raise issues at t-calendar-cli@tobixen.no or the github issue tracker")
+    print("It might be a good idea to read the documentation in parallel if running this for your first time")
     if not config or not hasattr(config, 'keys'):
         config = {}
         print("No valid existing configuration found")
@@ -259,7 +260,7 @@ def interactive_config(args, config, remaining_argv):
     if not section in config:
         config[section] = {}
 
-    for config_key in ('caldav_url', 'caldav_user', 'caldav_pass', 'caldav_proxy', 'ssl_verify_cert', 'language', 'timezone', 'inherits'):
+    for config_key in ('caldav_url', 'calendar_url', 'caldav_user', 'caldav_pass', 'caldav_proxy', 'ssl_verify_cert', 'language', 'timezone', 'inherits'):
 
         if config_key == 'caldav_pass':
             print("Config option caldav_pass - old value: **HIDDEN**")
