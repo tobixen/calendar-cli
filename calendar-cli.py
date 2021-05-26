@@ -479,21 +479,21 @@ def calendar_agenda(caldav_conn, args):
         raise ValueError("Agenda with --nocaldav only makes sense together with --icalendar")
 
     if args.from_time:
-        dtstart = dateutil.parser.parse(args.from_time)
-        dtstart = _tz(args.timezone).localize(dtstart)
+        search_dtstart = dateutil.parser.parse(args.from_time)
+        search_dtstart = _tz(args.timezone).localize(search_dtstart)
     else:
-        dtstart = _now()
+        search_dtstart = _now()
     if args.to_time:
-        dtend = dateutil.parser.parse(args.to_time)
-        dtend = _tz(args.timezone).localize(dtend)
+        search_dtend = dateutil.parser.parse(args.to_time)
+        search_dtend = _tz(args.timezone).localize(search_dtend)
     elif args.agenda_mins:
-        dtend = dtstart + timedelta(minutes=args.agenda_mins)
+        search_dtend = search_dtstart + timedelta(minutes=args.agenda_mins)
     elif args.agenda_days:
-        dtend = dtstart + timedelta(args.agenda_days)
-    ## TODO - error handling if dtend is not set above - but agenda_days have a default value, so that probably won't happen
+        search_dtend = search_dtstart + timedelta(args.agenda_days)
+    ## TODO - error handling if search_dtend is not set above - but agenda_days have a default value, so that probably won't happen
 
     ## TODO: time zone
-    events_ = find_calendar(caldav_conn, args).date_search(dtstart, dtend, expand=True)
+    events_ = find_calendar(caldav_conn, args).date_search(search_dtstart, search_dtend, expand=True)
     events = []
     if args.icalendar:
         for ical in events_:
@@ -531,7 +531,7 @@ def calendar_agenda(caldav_conn, args):
                 if hasattr(event['instance'], timeattr):
                     event[timeattr] = getattr(event['instance'], timeattr).value
                     if hasattr(event[timeattr], 'strftime'):
-                        event[timeattr] = event[timeattr].strftime(args.timestamp_format)
+                        event[timeattr] = event[timeattr].astimezone(_tz(args.timezone)).strftime(args.timestamp_format)
                 else:
                     event[timeattr] = '-'
             for textattr in vcal_txt_one:
