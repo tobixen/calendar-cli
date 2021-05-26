@@ -946,7 +946,7 @@ def main():
     calendar_agenda_parser.add_argument('--to-time', help="Fetch calendar until this timestamp")
     calendar_agenda_parser.add_argument('--agenda-mins', help="Fetch calendar for so many minutes", type=int)
     calendar_agenda_parser.add_argument('--agenda-days', help="Fetch calendar for so many days", type=int, default=7)
-    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event", default="{dtstart} {summary}")
+    calendar_agenda_parser.add_argument('--event-template', help="Template for printing out the event. Defaults to '{dtstart} {summary}'", default="{dtstart} {summary}")
     calendar_agenda_parser.add_argument('--timestamp-format', help="strftime-style format string for the output timestamps", default="%Y-%m-%d %H:%M (%a)")
     calendar_agenda_parser.set_defaults(func=calendar_agenda)
 
