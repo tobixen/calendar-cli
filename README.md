@@ -29,7 +29,7 @@ The calendar-cli executable can be executed as it is, or copied to /usr/bin.  Ma
 Support
 -------
 
-\#calendar-cli at irc.freenode.org, eventually t-calendar-cli@tobixen.no, eventually the issue tracker at https://github.com/tobixen/calendar-cli/issues
+\#calendar-cli at irc.oftc.net, eventually t-calendar-cli@tobixen.no, eventually the issue tracker at https://github.com/tobixen/calendar-cli/issues
 
 Before reaching out, please make sure all the dependencies are installed and that you've installed the latest version of the caldav python library.
 
