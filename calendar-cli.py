@@ -531,7 +531,9 @@ def calendar_agenda(caldav_conn, args):
                 if hasattr(event['instance'], timeattr):
                     event[timeattr] = getattr(event['instance'], timeattr).value
                     if hasattr(event[timeattr], 'strftime'):
-                        event[timeattr] = event[timeattr].astimezone(_tz(args.timezone)).strftime(args.timestamp_format)
+                        if hasattr(event[timeattr], 'astimezone'):
+                            event[timeattr] = event[timeattr].astimezone(_tz(args.timezone))
+                        event[timeattr] = event[timeattr].strftime(args.timestamp_format)
                 else:
                     event[timeattr] = '-'
             for textattr in vcal_txt_one:
