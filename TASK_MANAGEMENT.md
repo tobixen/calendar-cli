@@ -31,8 +31,6 @@ A geo is a location given by coordinates.  It probably makes great sense to use 
 * if you want to stick the tasks to a map.  Probably very useful if your tasks have to be done on lots of different locations (i.e. if you are a travelling salesman or a plumber).
 * if you want to set up the phone to automatically remind you about tasks i.e. when you are close to the supermarked, etc.  (however, most of us probably have several supermarkets we can go to, so geo doesn't make sense for that)
 
-At the other hand, one rarely needs to go to some exact supermarked, hence "supermarked" probably fits better in the category field.
-
 I've never used the geo field.
 
 Categories
