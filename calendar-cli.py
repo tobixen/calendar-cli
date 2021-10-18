@@ -546,7 +546,6 @@ def calendar_agenda(caldav_conn, args):
                     event['summary'] = getattr(event['instance'], summary_attr).value
                     break
             event['uid'] = event['instance'].uid.value if hasattr(event['instance'], 'uid') else '<no uid>'
-            ## TODO: this will probably break and is probably moot on python3?
             for attr in vcal_txt_one + ['summary']:
                 if isinstance(event[attr], unicode):
                     event[attr] = to_normal_str(event[attr])
