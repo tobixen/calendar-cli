@@ -24,23 +24,23 @@
 
 ### Time tracking
 
-When marking a task (VTODO) as completed, also make it possible to mark up how much time was spent on it (i.e. "2 hours"), optionally when it was done (default, worked on it until just now), optionally a description of what was done.  A VJOURNAL entry is then automatically added to the calendar, marked as a child of the task.  Overtime and billing information is considered site-specific and outside the scope - eventually, one can use X-style attributes in the vJOURNAL entry for that.
+When marking a task (VTODO) as completed, also make it possible to mark up how much time was spent on it (i.e. "2 hours"), optionally when it was done (default, worked on it until just now), optionally a description of what was done.  A VJOURNAL entry is then automatically added to the calendar, marked as a child of the task.  Overtime and billing information is considered site-specific and outside the scope - eventually, one can use X-style attributes in the VJOURNAL entry for that.
 
 Actual participation (and time usage) on an event can also 
 
 ### Striking out something from the calendar
 
-A "striked-out" calendar item should be presented by a vJOURNAL entry, possibly linked to a vEVENT or a completed vTODO.  If the vJOURNAL entry is linked to a vTODO that is not marked as completed, it should not be marked as "striked-out" in the calendar.
+A "striked-out" calendar item should be presented by a VJOURNAL entry, possibly linked to a VEVENT or a completed VTODO.  If the VJOURNAL entry is linked to a VTODO that is not marked as completed, it should not be marked as "striked-out" in the calendar.
 
 Simple tasks can be "striked out" by marking them completed, ref above.
 
 ### Task management
 
-* A vEVENT linked up as a child to a vTODO means we've (tried to) allocate some time for doing the vTODO (hence "sticking" the task to the calendar).  If the task isn't marked completed by the end of the event, the calendar system should point it out.  The user should then either reschedule, procrastinate, cancel or mark it as completed.
+* A VEVENT linked up as a child to a VTODO means we've (tried to) allocate some time for doing the VTODO (hence "sticking" the task to the calendar).  If the task isn't marked completed by the end of the event, the calendar system should point it out.  The user should then either reschedule, procrastinate, cancel or mark it as completed.
 
-* A vEVENT linked up as a parent to a vTODO means the vTODO needs to be completed before the event.  Once the event has passed, the vTODO should probably be cancelled if it wasn't done yet.
+* A VEVENT linked up as a parent to a VTODO means the VTODO needs to be completed before the event.  Once the event has passed, the VTODO should probably be cancelled if it wasn't done yet.
 
-* DURATION should be used for time estimates (this breaks with my previous usage of DTSTART for prioritizing tasks).  For tasks with children tasks, DURATION in the vEVENT should only indicate the "independent" time usage.  Total duration including all children tasks should eventually be calculated and presented by the calendar application.
+* DURATION should be used for time estimates (this breaks with my previous usage of DTSTART for prioritizing tasks).  For tasks with children tasks, DURATION in the VEVENT should only indicate the "independent" time usage.  Total duration including all children tasks should eventually be calculated and presented by the calendar application.
 
 * PRIORITY should indicate how important it is to do the task by the indicated DUE date/timestamp.  If PRIORITY=1, then the task is extremely important AND the DUE is a hard deadline.  PRIORITY=9 may mean either that DUE is a "fanciful wish" OR that the task should simply be cancelled if it's difficult to get it done prior to the DUE date.
 

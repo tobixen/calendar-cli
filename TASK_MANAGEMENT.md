@@ -91,7 +91,9 @@ There is no support for rrules outside the task completion code, so as for now t
 dtstart vs due vs duration vs priority
 --------------------------------------
 
-I my opinion, dtstart is the earliest time you expect to start working with the vtodo, or maybe the earliest time it's possible to start.  Passing the dtstart doesn't mean you need to drop everything else and start working on the task immediately.  You'd want to postpone the dtstart just to unclutter the todo-list.
+Everything below describes my workflow as of 2015.  I have reconsidered and I'm working on new workflow - see the document [NEXT_LEVEL.md](NEXT_LEVEL.md).  The short summary: DURATION should be the actual time estimate, DUE is when you'd like to be done with the task, DTSTART is the latest possible time you can start with the task if the DUE is to be held, PRIORITY should show how urgent it is to complete before DUE (or complete the task at all), and it will be needed with slightly new logic for sorting and listing tasks.  I'm also planning to follow up with linked VJOURNAL-entries for keeping tabs on (potentially billable) time spent on work, as well as the possibility to link VEVENT and VTODO (to allocate specific time for working with a task, or mark up that some TODO needs to be done before some event)
+
+As of 2015 my opinion was that dtstart is the earliest time you expect to start working with the vtodo, or maybe the earliest time it's possible to start.  Passing the dtstart doesn't mean you need to drop everything else and start working on the task immediately.  You'd want to postpone the dtstart just to unclutter the todo-list.
 
 Due is the time/date when the task has to be completed, come hell or high water.  It should probably not be postponed.  Due dates should probably be set very far in the future if no specific due date is set.  You really don't want the list of tasks that are soon due or even overdue to be cluttered up with stuff that can be procrastinated even further.
 
