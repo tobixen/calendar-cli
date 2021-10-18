@@ -40,7 +40,7 @@ I'd like to think of categories as tags that can be stuck to tasks, and then use
 
 When to use location or geo, and when to use category?  I think that for the super market example, geo is not really fitting because it can only be one geo coordinate related to a vtodo, but there are many super markeds that can be visited.  One could also think that "supermarked" is not a good location for the same reason.  In practice, I've never used location and geo, always been sticking such information into the categories instead.
 
-While the categories field is a freetext field, it's important that the same categories are used consistently.  I made it possible to do "calendar-cli todo list --list-categories" to just take out a list of used categories.
+While the categories field is a freetext field, it's important that the same categories are used consistently.  I made it possible to do `calendar-cli todo list --list-categories` to just take out a list of used categories.
 
 Pending-Dependent
 -----------------
