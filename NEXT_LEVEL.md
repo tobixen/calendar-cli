@@ -1,8 +1,8 @@
 ## Some potential requirements from a good calendaring system:
 
-* 100% of all calendar users wants the possibility to "strike out" a thing from a calendar (I heard it at CalendarFest event, so it must be true).
+* 100% of all calendar users wants the possibility to "strike out" a thing from a calendar (I heard it at the CalendarFest event, so it must be true).
 
-* It may be useful to take meeting notes directly from a calendar application (it was also said at CalendarFest).
+* It may be useful to take meeting notes directly from a calendar application (it was also said at the CalendarFest).
 
 * Project management and accounting systems needs information on time estimates and tracking the time spent working on a task (this is a matter of fact).  Project management and accounting systems ought to be tightly coupled with the calendar system (that's my opinion).  How much time does one expect a task to take, and how much was spent on the task?  How many of the hours spent on the tasks should be billed (and how many of those should be billed at over-time rates?).  Should the employee get paid at normal rates or overtime rates for the working hours spent?
 
