@@ -1,9 +1,7 @@
 Managing tasks through calendar-cli
 ===================================
 
-While the RFC does draw some lines on what fields are admissable in the todo-entries in the calendar, it doesn't really give good guidelines on how to use the different fields.  One often gets into dilemmas ... when to use the category field vs when to use the location field vs when to branch out a completely distinct calendar, etc.  This document was originally written for myself, trying to make my own task management consistent and efficient.
-
-I haven't done much research in how different software packages handles tasks, but I've been using calendar-cli for some task management, the document has been updated with my experiences.
+While the RFC does draw some lines on what fields are admissable in the todo-entries in the calendar, it doesn't really give good guidelines on how to use the different fields.  One often gets into dilemmas ... when to use the category field vs when to use the location field vs when to branch out a completely distinct calendar, etc.  Here are my considerations.
 
 Calendar scope
 --------------
@@ -33,7 +31,9 @@ A geo is a location given by coordinates.  It probably makes great sense to use 
 * if you want to stick the tasks to a map.  Probably very useful if your tasks have to be done on lots of different locations (i.e. if you are a travelling salesman or a plumber).
 * if you want to set up the phone to automatically remind you about tasks i.e. when you are close to the supermarked, etc.  (however, most of us probably have several supermarkets we can go to, so geo doesn't make sense for that)
 
-Practical experience: I haven't used the geo field myself.
+At the other hand, one rarely needs to go to some exact supermarked, hence "supermarked" probably fits better in the category field.
+
+I've never used the geo field.
 
 Categories
 ----------
@@ -47,38 +47,40 @@ While the categories field is a freetext field, it's important that the same cat
 Pending-Dependent
 -----------------
 
-If task A cannot be done without task B being done first, we say that A depends on B.  It may make sense to hide A from todolists, or maybe fade it away.  It may also make sense to ensure the due date for B is before the due date for A.
+If task A cannot be done without task B being done first, we say that A depends on B.  We may want to construct a bikeshed, then paint it red.  Obviously the painting depends on the construction.  It may make sense to hide the paint job from the todolists, or maybe fade it away - when checking the list of immediate tasks to be executed, "painting the bikeshed" is just noise.  It may also make sense to ensure the due date for the construction is before the due date for the painting.
 
-The VTODO-standard does not support this kind of relationship, but it's possible to use parent-child.  The parent will then be the dependent, and the child will be the pending.  See below for practical experiences.
+The VTODO-standard does not support this kind of relationship, but it's possible to use parent-child.  Think of the parent as the dependent and the child as the pending.  See below for practical experiences.
 
 Parent-child relationship
 -------------------------
 
-With the parent-child relationship one can make a hierarchical task list.  It makes a lot of sense when having a big task that can be split up in subtasks.  Say, the task may be "build a bicycle shed".  That does take quite some planning, purchases and work, so one will definitively want to break it up in subtasks.  Ordering such a thing by categories is probably not so productive.  This is more or less compatible with the "Pending-Dependent"-situation above; the task "build a bicycle shed" is dependent on "buy some planks", one would need to buy planks before building the bicycle shed.
+With the parent-child relationship one can make a hierarchical task list.  It makes a lot of sense when having a big task that can be split up in subtasks.  Say, the task may be "build a bicycle shed".  That does take quite some planning, purchases and work, so one will definitively want to break it up in subtasks.
 
-What about the shopping list?  "Buy squash" seems to be a subtask of "buy vegetables" which again may be a subtask of "go shopping at the supermarket".  From a pending-dependent-perspective it still sort of checks out; you could say that one need to "go shopping" before one can "buy squash", but atoh one cannot successfully complete the "go shopping" without buying the squash.
+A shopping list may also be considered to be a parent-child relationship.  "Buy cucumber" seems to be a subtask of "buy vegetables" which again may be a subtask of "go shopping at the supermarket".
 
-The causality is turned on it's head in the shopping example - the purpose of "go shopping" is to "buy squash", the purpose of "build bike shed" is not to "buy planks".
+Every parent-child relationship can also be seen as a dependency as well, but it's a bit in reverse.  One cannot build the bike shed without first buying planks.  One cannot tick the checkbox for "go shopping" if the cucumber was not bought.  (or is it the other way?  One cannot "buy cucumber" before one has started the procedure of "go shopping"?)
 
-I'd first add "build a shed" on the todo-list and then try to plan and see what subtasks are needed - but wrg of the sugar, I'd start with "bake a cake", then "buy sugar" and only then I would add "go shopping" to the todo-list.  (Though, my wife would probably first add "go to the shop" and then start thinking what to buy in the shop).
+There is a bit of a difference between the typical pending-dependent and the typical parent-child relationship.  In a typical "parent-child"-relationship one may want to take out hierarchical lists with the parent first, or take out simple overviews where all the details (i.e. grandchildren) are hidden.  In a typical "pending-dependent"-relationship one may want to hide the dependent (parent) and emphasize on what's needed to be done first (child).
 
-Practical experience:
+There is another relationship also ... purpose and means.  The purpose of the shopping trip is to buy cucumber - but the purpose of building the biking shed is not to buy planks  (Unless the owner of the planks shop used some clever marketing for tricking you into building the bike shed, that is).
 
-* I've been using "supermarket" and "hardware shopping" as categories.  This have been working out fine for me, it makes much more sense than to have "supermarket shopping" and "hardware shopping" as tasks on the list.
-* I never felt a compelling need to group the shopping lists inside the calendar.  On big shopping trips it makes sense to do that, but I'd typically do it externally (i.e. one of the shops I frequently go to - Biltema - I'll make the shopping list inside their web interface, then I get it out with shelf location, information if they are out of stock, prices, etc).
-* Although I haven't created any bike-sheds, I've had some "projects".  First I toss the project into the task-list, with the categories "keyboard" and "thinking".  Later I take up that task and I start creating sub-tasks.  The project then disappears from my regular overview because it has unresolved dependencies.  This has worked out reasonably well for me.
+The purpose for buying sugar could be "bake a cake".  I would then start by adding "bake a cake" to the task list, then "buy sugar", and only then I would eventually add "go shopping" to the todo-list. (That's maybe just me.  My wife would go to the shop to buy a cucumber, and then come home with everything needed for baking a cake and more).
 
-It must be said that parent-child-relationships aren't very well supported yet in calendar-cli.
+From my practical experience, "supermarket" and "hardware shopping" can as well be categories.  So eventually when I really need that cucumber, I can check up the full list for the category "supermarket" and come home with all ingrediences needed for making a cake.  I've never felt a compelling need to group the shopping list inside the calendar.
+
+Although I haven't created any bike-sheds, I've had some "projects".  First I toss the project into the task-list, with the categories "keyboard" and "thinking".  Later I take up that task and I start creating sub-tasks.  The project then disappears from my regular overview because it has unresolved dependencies.  This has worked out reasonably well for me.
+
+Parent-child-relationships aren't very well supported yet in calendar-cli yet.
 
 Recurring tasks
 ---------------
 
-The standard allows for recurring tasks, but doesn't really flesh out what it means that a task is recurring - except that it should show up on date searches if any of the recurrances are within the date search range.
+The standard allows for recurring tasks, but doesn't really flesh out what it means that a task is recurring - except that it should show up on date searches if any of the recurrances are within the date search range.  Date searches for future recurrances of tasks is ... quite exotic, why would anyone want to do that?
 
 There are two kind of recurrances:
 
 * Specified intervals - say, the floor should be cleaned every week.  You usually do it every Monday, but one week everything is so hectic that you postpone it all until late Sunday evening.  It would be irrational to wash it again the next day.
-* Fixed-time.  If you actually get paid for washing the floor and you have a contract stating that you get paid a weekly sum for washing the floor weekly, then you'd probably want to wash the floor again on Monday, even if it has been done just recently.
+* Fixed-time.  If you actually get paid for washing the floor and you have a contract stating that you get paid a weekly sum for washing the floor weekly, then you'd probably want to wash the floor again on Monday, even if it has been done just recently.  Or perhaps one of the children is having swimming at school every Tuesday, so sometime during Monday (with a hard due set to Tuesday early morning) a gym bag with swimwear and a fresh towel should be prepared for the child.
 
 There can be only one status and one complete-date for a vtodo, no matter if it's recurring or not.
 
