@@ -835,6 +835,7 @@ def main():
     parser.add_argument("--caldav-user", help="username to log into the caldav server", metavar="USER")
     parser.add_argument("--caldav-pass", help="password to log into the caldav server", metavar="PASS")
     parser.add_argument("--caldav-proxy", help="HTTP proxy server to use (if any)")
+    parser.add_argument("--file-pass", help="Absolute path to file containing the password")
     parser.add_argument("--ssl-verify-cert", help="verification of the SSL cert - 'yes' to use the OS-provided CA-bundle, 'no' to trust any cert and the path to a CA-bundle")
     parser.add_argument("--debug-logging", help="turn on debug logging", action="store_true")
     parser.add_argument("--calendar-url", help="URL for calendar to be used (may be absolute or relative to caldav URL, or just the name of the calendar)")
@@ -963,6 +964,10 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
         caldav.log.setLevel(logging.DEBUG)
         caldav.log.addHandler(logging.StreamHandler())
+
+    if args.file_pass:
+        with open(args.file_pass, 'r') as f:
+            args.caldav_pass = f.read().strip()
 
     if not args.nocaldav:
         if not args.calendar_url and not args.caldav_url:
