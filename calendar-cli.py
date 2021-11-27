@@ -3,14 +3,19 @@
 """
 https://github.com/tobixen/calendar-cli/ - high-level cli against caldav servers.
 
-Copyright (C) 2013-2020 Tobias Brox and other contributors.
+Copyright (C) 2013-2021 Tobias Brox and other contributors.
 
 See https://www.gnu.org/licenses/gpl-3.0.en.html for license information.
 """
 
 import argparse
-import pytz
 import tzlocal
+## we still need to use pytz, see https://github.com/collective/icalendar/issues/333
+#try:
+#    import zoneinfo
+#except:
+#    from backports import zoneinfo
+import pytz
 import time
 from datetime import datetime, timedelta, date
 from datetime import time as time_
@@ -28,6 +33,9 @@ import re
 import urllib3
 from getpass import getpass
 from six import PY3
+
+UTC = pytz.utc
+#UTC = zoneinfo.ZoneInfo('UTC')
 
 def to_normal_str(text):
     if PY3 and text and not isinstance(text, str):
@@ -48,7 +56,7 @@ try:
 except NameError:
     unicode = str
 
-__version__ = "0.12.1"
+__version__ = "0.13.0"
 __author__ = "Tobias Brox"
 __author_short__ = "tobixen"
 __copyright__ = "Copyright 2013-2021, Tobias Brox and contributors"
@@ -92,14 +100,35 @@ def _now():
     """
     python datetime is ... crap!
     """
-    return datetime.utcnow().replace(tzinfo=pytz.utc)
+    return datetime.utcnow().replace(tzinfo=UTC)
 
 def _tz(timezone=None):
-    if timezone:
+    if timezone is None:
+        try:
+            ## should not be needed - but see
+            ## https://github.com/collective/icalendar/issues/333
+            return pytz.timezone(tzlocal.get_localzone_name())
+        except:
+            ## if the tzlocal version is old
+            return tzlocal.get_localzone()
+      
+    elif not hasattr(timezone, 'utcoffset'):
+        ## See https://github.com/collective/icalendar/issues/333
+        #return zoneinfo.ZoneInfo(timezone)
         return pytz.timezone(timezone)
     else:
-        return tzlocal.get_localzone()
+        return timezone
 
+def _localize(ts, timezone=None):
+    """
+    assume a naive timestamp should be with the given timezone,
+    convert a timestamp with timezone to the given timezone
+    """
+    tz = _tz(timezone)
+    if ts.tzinfo is None:
+        return ts.replace(tzinfo=tz)
+    else:
+        return ts.astimezone(tz)
 
 ## global constant
 ## (todo: this doesn't really work out that well, leap seconds/days are not considered, and we're missing the month unit)
@@ -363,7 +392,7 @@ def calendar_add(caldav_conn, args):
         event.add('dtstart', _date(dtstart.date()))
         event.add('dtend', _date(dtend.date()))
     else:
-        dtstart = _tz(args.timezone).localize(dtstart)
+        dtstart = dtstart.replace(tzinfo=_tz(args.timezone))
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))
@@ -480,12 +509,12 @@ def calendar_agenda(caldav_conn, args):
 
     if args.from_time:
         search_dtstart = dateutil.parser.parse(args.from_time)
-        search_dtstart = _tz(args.timezone).localize(search_dtstart)
+        search_dtstart = _localize(search_dtstart, args.timezone)
     else:
         search_dtstart = _now()
     if args.to_time:
         search_dtend = dateutil.parser.parse(args.to_time)
-        search_dtend = _tz(args.timezone).localize(search_dtend)
+        search_dtend = _localize(search_dtend, args.timezone)
     elif args.agenda_mins:
         search_dtend = search_dtstart + timedelta(minutes=args.agenda_mins)
     elif args.agenda_days:
@@ -512,13 +541,7 @@ def calendar_agenda(caldav_conn, args):
                 dtstart = event.dtstart.value if hasattr(event, 'dtstart') else _now()
                 if not isinstance(dtstart, datetime):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
-                if not dtstart.tzinfo:
-                    try:
-                        dtstart = tzinfo.localize(dtstart)
-                    except AttributeError:
-                        dtstart.astimezone(tzinfo)
-                ## convert into timezone given in args:
-                dtstart = dtstart.astimezone(_tz(args.timezone))
+                dtstart = _localize(dtstart, tzinfo)
                 events.append({'dtstart': dtstart, 'instance': event})
 
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.

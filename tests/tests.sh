@@ -8,6 +8,8 @@ set -e
 
 error() {
     echo "$1"
+    echo "sleeping 3"
+    sleep 3
     exit 255
 }
 

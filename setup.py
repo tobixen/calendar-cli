@@ -32,7 +32,7 @@ setup(
     install_requires=[
         'icalendar',
         'caldav>=0.8.1',
-        'pytz',
+        'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333 
         'tzlocal',
         'six'
     ],
