@@ -10,12 +10,19 @@ There is another project out there, "Command-line Interface for Google Calendar"
 
 There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage, just client-side operations.
 
+New vs old interface
+--------------------
+
+calendar-cli.py is the old interface, it will hang around and be supported for some time to come.  cal.py is the new interface, but until version 1.0 is ready, there will still be functionality in calendar-cli that isn't mirrored to cal.py.
+
+I wanted a short and easy command name, since `cal(1)` is already a popular Unix command, I'm considering to install it into /usr/bin with the name `kal`, but I'm a bit uncertain (seems either like a bad typo or an attempt on localizing the command into my native language?)
+
 Usage examples
 --------------
 
 The commands and options will be described further down, however examples often beats documentation.
 
-First, check the tests folder - the file tests.sh shows some basic usage examples.  If you have radicale installed (`sudo pip install radicale`), you can try executing test_calendar-cli.sh in that folder, it basically sets up a temporary radicale server and executes the tests.sh towards that server.  If test_calendar-cli.sh breaks then _please_ raise an issue on the github or try to reach out through other channels.
+First, check the tests folder - the file tests.sh shows some basic usage examples.  If you have radicale installed (`sudo pip install radicale`), you can try executing test_calendar-cli.sh in the test folder, it basically sets up a temporary radicale server and executes the tests.sh towards that server.  If test_calendar-cli.sh breaks then _please_ raise an issue on the github or try to reach out through other channels.
 
 In the examples folder there is a script I was using on a regular basis for task management for a while.
 

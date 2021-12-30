@@ -6,22 +6,11 @@ set -e
 ## SETUP
 ########################################################################
 
-error() {
-    echo "$1"
-    echo "sleeping 3"
-    sleep 3
-    exit 255
-}
-
-[ -z "$calendar_cli" ] && [ -x ./calendar-cli.py ] && calendar_cli=./calendar-cli.py
-[ -z "$calendar_cli" ] && [ -x ../calendar-cli.py ] && calendar_cli=../calendar-cli.py
-[ -z "$calendar_cli" ] && error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
-
-calendar_cli() {
-    echo "    $calendar_cli $@"
-    output=$($calendar_cli "$@")
-    [ -z "$output" ] || echo $output
-}
+for path in . .. ./tests ../tests
+do
+    setup="$path/_setup_alias"
+    [ -x $setup  ] && source $setup
+done
 
 echo "## CLEANUP from earlier failed test runs"
 

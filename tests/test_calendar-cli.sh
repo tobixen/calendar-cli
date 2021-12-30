@@ -12,6 +12,7 @@ if [ -n "$radicale_pid" ]
 then
     echo "## Radicale now running on pid $radicale_pid"
     calendar_cli="../calendar-cli --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
+    kal="../cal.py  --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     echo "## Creating a calendar"
     $calendar_cli calendar create calendar-cli-test-calendar
     
@@ -30,8 +31,6 @@ fi
 echo "########################################################################"
 echo "## XANDIKOS"
 echo "########################################################################"
-echo "Not supported at the moment (xandikos dev decided to return a 500 telling that expand doesn't work when I prodded them that it didn't work.  should maybe try to create a workaround)"
-exit 0
 xandikos_bin=$(which xandikos 2> /dev/null)
 if [ -n "$xandikos_bin" ] 
 then

@@ -3,6 +3,8 @@
 """
 https://github.com/tobixen/calendar-cli/ - high-level cli against caldav servers.
 
+This is the legacy calendar-cli.  A new interface is being built in cli.py
+
 Copyright (C) 2013-2021 Tobias Brox and other contributors.
 
 See https://www.gnu.org/licenses/gpl-3.0.en.html for license information.

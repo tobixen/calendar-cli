@@ -29,12 +29,19 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
     scripts=['calendar-cli.py', 'calendar-cli'],
+    py_modules=['cal'],
     install_requires=[
         'icalendar',
         'caldav>=0.8.1',
         'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333 
         'tzlocal',
+        'Click',
         'six'
     ],
+    entry_points={
+        'console_scripts': [
+            'kal = cal:cli',
+        ],
+    },
    **metadata
 )
