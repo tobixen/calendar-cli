@@ -105,6 +105,10 @@ def _now():
     return datetime.utcnow().replace(tzinfo=UTC)
 
 def _tz(timezone=None):
+    """
+    gives the local time zone if no time zone is given,
+    otherwise should return the timezone (or some canonical time zone object)
+    """
     if timezone is None:
         try:
             ## should not be needed - but see
@@ -121,16 +125,23 @@ def _tz(timezone=None):
     else:
         return timezone
 
-def _localize(ts, timezone=None):
+def _localize(ts, tz=None, from_tz=None, to_tz=None):
     """
-    assume a naive timestamp should be with the given timezone,
-    convert a timestamp with timezone to the given timezone
+    Should always return a non-native timestamp with timezone.
+    If from_tz or to_tz is None, assume ts is in local timezone.
+    if ts already has tiemzone, then it will trump from_tz
     """
-    tz = _tz(timezone)
-    if ts.tzinfo is None:
-        return ts.replace(tzinfo=tz)
-    else:
-        return ts.astimezone(tz)
+    if not from_tz and not to_tz:
+        from_tz = tz
+        to_tz = tz
+    from_tz = _tz(from_tz)
+    to_tz = _tz(to_tz)
+    if not ts.tzinfo:
+        if hasattr(from_tz, 'localize'):
+            ts = from_tz.localize(ts)
+        else:
+            ts = ts.replace(tzinfo=tz)
+    return ts.astimezone(to_tz)
 
 ## global constant
 ## (todo: this doesn't really work out that well, leap seconds/days are not considered, and we're missing the month unit)
@@ -394,7 +405,7 @@ def calendar_add(caldav_conn, args):
         event.add('dtstart', _date(dtstart.date()))
         event.add('dtend', _date(dtend.date()))
     else:
-        dtstart = dtstart.replace(tzinfo=_tz(args.timezone))
+        dtstart = _localize(dtstart, args.timezone)
         event.add('dtstart', dtstart)
         ## TODO: handle duration and end-time as options.  default 3600s by now.
         event.add('dtend', dtstart + timedelta(0,event_duration_secs))
@@ -531,11 +542,7 @@ def calendar_agenda(caldav_conn, args):
             print(to_normal_str(ical.data).strip())
     else:
         for event_cal in events_:
-            if hasattr(event_cal.instance, 'vtimezone'):
-                ## i'm not sure this is useful
-                tzinfo = event_cal.instance.vtimezone.gettzinfo()
-            else:
-                tzinfo = _tz(args.timezone)
+            tzinfo = _tz(args.timezone)
             events__ = event_cal.instance.components()
             for event in events__:
                 if event.name != 'VEVENT':
@@ -544,6 +551,7 @@ def calendar_agenda(caldav_conn, args):
                 if not isinstance(dtstart, datetime):
                     dtstart = datetime(dtstart.year, dtstart.month, dtstart.day)
                 dtstart = _localize(dtstart, tzinfo)
+
                 events.append({'dtstart': dtstart, 'instance': event})
 
         ## changed to use the "key"-parameter at 2019-09-18, as needed for python3.

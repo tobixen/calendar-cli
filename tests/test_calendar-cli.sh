@@ -22,7 +22,6 @@ then
     export calendar_cli
     export kal
     ./tests.sh
-    sleep 600
     kill $radicale_pid
     sleep 0.3
 else
