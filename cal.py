@@ -41,7 +41,9 @@ import caldav
 @click.pass_context
 def cli(ctx, **kwargs):
     """
-    CalDAV Command Line Interface
+    CalDAV Command Line Interface, in development.
+
+    This command will eventually replace calendar-cli.
     """
     
     ## The cli function will prepare a context object, a dict containing the
@@ -65,15 +67,7 @@ def cli(ctx, **kwargs):
         calendars.append(principal.calendar(name=calendar_name))
     if not calendars:
         calendars = principal.calendars()
-    ctx.obj['client'] = client
-    ctx.obj['principal'] = principal
     ctx.obj['calendars'] = calendars
-
-@cli.group()
-@click.option('-l', '--add-ical-line', multiple=True)
-@click.pass_context
-def add(ctx, add_ical_line):
-    click.echo("working on something here")
 
 @cli.command()
 @click.pass_context
@@ -81,13 +75,37 @@ def test(ctx):
     """
     Will test that we can connect to the caldav server and find the calendars.
     """
-    print("Seems like everything is OK")
+    click.echo("Seems like everything is OK")
 
+@cli.group()
+@click.option('-l', '--add-ical-line', multiple=True, help="extra ical data to be injected")
+@click.option('--multi-add/--no-multi-add', default=False, help="Add things to multiple calendars")
+@click.option('--first-calendar/--no-first-calendar', default=False, help="Add things to the first given calendar")
+@click.pass_context
+def add(ctx, **kwargs):
+    if (len(ctx.obj['calendars'])>1 and
+        not kwargs['multi_add'] and
+        not click.confirm(f"Multiple calendars given.  Do you want to duplicate to {len(ctx.obj['calendars'])} calendars? (tip: use option --multi-add to avoid this prompt in the future)")):
+        calendar = ctx.obj['calendars'][0]
+        ## TODO: we need to make sure f"{calendar.name}" will always work or something
+        if (kwargs['first_calendar'] or
+            click.confirm(f"First calendar on the list has url {calendar.url} - should we add there? (tip: use --calendar-url={calendar.url} or --first_calendar to avoid this prompt in the future)")):
+            ctx.obj['calendars'] = [ calendar ]
+        else:
+            raise click.Abort()
+    click.echo("working on something here")
+    ctx.obj['ical_fragment'] = "\n".join(kwargs['add_ical_line'])
     
 @add.command()
-def ical():
-    click.echo("soon you should be able to add ical data to your calendar")
-    raise NotImplementedError("foo")
+@click.pass_context
+@click.option('-d', '--ical-data', '--ical', help="ical object to be added")
+@click.option('-f', '--ical-file', type=click.File('rb'), help="file containing ical data")
+def ical(ctx, ical_data, ical_file):
+    if (ical_file):
+        ical = ical_file.read()
+    for c in ctx.obj['calendars']:
+        ## TODO: this may not be an event - should make a Calendar.save_object method
+        c.save_event(ical)
 
 @add.command()
 def todo():

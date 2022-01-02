@@ -84,7 +84,7 @@ A calendar event could be "striked-out" if it has a child VJOURNAL entry.  A tas
 Add an event, task or journal entry:
 
 ```
-kal add event --config-section=private_calendar --set-location="Aker Brygge marina" "new years party" 2032-12-31T20:00+5h 
+kal --config-section=private_calendar add --set-location="Aker Brygge marina" event 2032-12-31T20:00+5h "new years party" 
 kal add todo "Buy food for the new years party" --set-due=2032-12-30T20:00 --set-duration=1h
 
 kal add journal "Captain's log" 2020-12-04 'Started from Świnoujście a bit after 03AM.  Due to miscommunication, bad planning and language problems my crew member Bartek managed to throw the whole mooring rope to the sea (clearly the captains fault - I didnt explain the task "release one end of the rope, let it go into the sea and then pull it in" well enough, and he did ask "are you really sure about that?" before throwing both ends of the rope to the sea).  Tail wind, between 8-16 knots relative windspeed, changed a bit between broad reach and butterfly.  While going butterfly, due to a rather big wave we had an accidental jib, bad enough that the preventer rope broke off the cleat it was attached to (but luckily no damanges to the rig).  There seems to be a minor salt water leakage by the rudder.  Passed Falsterbo around 21, moored up in the guest harbour in Skanör around 22.  Very quiet as it was way outside the season.  Didnt find any obvious choice on the payment automat for harbor fee - eventually I payed SEK 100 for "tvättstuga".  I got no access to the laundry room, so I decided that 100 SEK was an OK price for staying overnight with electricity off-season in Skanör.'

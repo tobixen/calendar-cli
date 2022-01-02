@@ -11,7 +11,7 @@ radicale_pid=$(jobs -l | perl -ne '/^\[\d+\]\+\s+(\d+)\s+Running/ && print $1')
 if [ -n "$radicale_pid" ]
 then
     echo "## Radicale now running on pid $radicale_pid"
-    calendar_cli="../calendar-cli --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
+    calendar_cli="../calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     kal="../cal.py  --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     echo "## Creating a calendar"
     $calendar_cli calendar create calendar-cli-test-calendar
@@ -20,7 +20,9 @@ then
     ## the calendar is created.  Without the statement above, I'll
     ## just get 404 when running tests.
     export calendar_cli
+    export kal
     ./tests.sh
+    sleep 600
     kill $radicale_pid
     sleep 0.3
 else
@@ -43,7 +45,9 @@ if [ -n "$xandikos_pid" ]
 then
     echo "## Xandikos now running on pid $xandikos_pid"
     calendar_cli="../calendar-cli --caldav-url=http://localhost:8080/ --caldav-user=user"
+    kal="../cal.py  --caldav-url=http://localhost:8080/ --caldav-user=user"
     export calendar_cli
+    export kal
     ./tests.sh
     kill $xandikos_pid
 else

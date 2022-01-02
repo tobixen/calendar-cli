@@ -9,13 +9,15 @@ set -e
 for path in . .. ./tests ../tests
 do
     setup="$path/_setup_alias"
-    [ -x $setup  ] && source $setup
+    [ -f $setup  ] && source $setup
 done
 
 echo "## CLEANUP from earlier failed test runs"
 
+QUIET=true
 for uid in $($calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=5 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
 calendar_cli todo --categories scripttest delete
+unset QUIET
 
 ########################################################################
 ## TEST CODE FOLLOWS
@@ -65,11 +67,27 @@ uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## fetching the full day event, in ics format"
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+
 echo "$output" | grep -q "whole day" || error "could not find the event"
 echo "$output" | grep -q "20101010" || error "could not find the date"
 echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
 echo "OK: found the event"
 
+## saving the ics data
+tmpfile=$(mktemp)
+cat $outfile > $tmpfile
+
+echo "## cleanup, delete it"
+calendar_cli calendar delete --event-uid=$uid
+
+echo "## Same, using kal add ics"
+kal add ical --ical-file=$tmpfile
+#rm $tmpfile
+calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+echo "$output" | grep -q "whole day" || error "could not find the event"
+echo "$output" | grep -q "20101010" || error "could not find the date"
+echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
+echo "OK: found the event"
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
 
@@ -177,3 +195,7 @@ calendar_cli todo --hide-parents --categories scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
 
 echo "## ALL TESTS COMPLETED!  YAY!"
+
+
+rm $outfile
+
