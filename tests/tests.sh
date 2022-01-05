@@ -82,7 +82,7 @@ calendar_cli calendar delete --event-uid=$uid
 
 echo "## Same, using kal add ics"
 kal add ical --ical-file=$tmpfile
-#rm $tmpfile
+rm $tmpfile
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
 echo "$output" | grep -q "whole day" || error "could not find the event"
 echo "$output" | grep -q "20101010" || error "could not find the date"
@@ -90,6 +90,19 @@ echo "$output" | grep -q "20101010T" && error "a supposed whole day event was fo
 echo "OK: found the event"
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
+
+## TODO - procrastinated, waiting for response on https://github.com/dateutil/dateutil/issues/1184 
+#echo "## Same, using kal add event"
+#kal add event '2010-10-10+4d' 'whole day testing'
+#uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+#[ -n "$uid" ] || error "got no UID back"
+#calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+#echo "$output" | grep -q "whole day" || error "could not find the event"
+#echo "$output" | grep -q "20101010" || error "could not find the date"
+#echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
+#echo "OK: found the event"
+#echo "## cleanup, delete it"
+#calendar_cli calendar delete --event-uid=$uid
 
 echo "## A full day event should be implicit when giving dates rather than timestamps"
 calendar_cli calendar add '2010-10-10+3d' 'whole day testing'

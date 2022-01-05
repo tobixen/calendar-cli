@@ -3,7 +3,9 @@
 """
 https://github.com/tobixen/calendar-cli/ - high-level cli against caldav servers.
 
-This is the legacy calendar-cli.  A new interface is being built in cli.py
+This is the legacy calendar-cli.  A new interface is being built in cal.py - aka kal
+Feedback/wishes/discussions on the new cli can be held at
+https://github.com/tobixen/calendar-cli/issues/88
 
 Copyright (C) 2013-2021 Tobias Brox and other contributors.
 

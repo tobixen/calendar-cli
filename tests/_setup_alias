@@ -1,6 +1,7 @@
 outfile=$(mktemp)
 
 error() {
+    echo "FAILURE"
     echo "$1"
     echo "sleeping 3"
     sleep 3
