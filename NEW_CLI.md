@@ -9,13 +9,13 @@
   * `kal` ... looks a bit like a silly misspelling or an attempt to localize it into some non-english language (which then will look even more silly when combined with english subcommands and english options). At the other hand, I do see that it's not entirely uncommon to use `klass` when putting a class into a variable in python, `kal` is short to type, easy to remember, and there aren't too many other projects utilizing the `kal`-name as far as I can see.
 * We'll use click, which is supposed to support subcommands in an elegant way.
 * I'm fairly happy with the todo interface for listing/editing/completing.  First options to filter/sort/limit the todo item(s), then a subcommand for what to do on those items.
-* Should consider that we at some point may want to support tools that doesn't support caldav.  Should als oconsider that we may want to support tools that doesn't support icalendar.  For instance, issue tracking through gitlab or github.
+* Should consider that we at some point may want to support tools that doesn't support caldav.  Should also consider that we may want to support tools that doesn't support icalendar.  For instance, issue tracking through gitlab or github.
 * Perhaps a new calendar-tui for increased interactivity?
 * Some or all of the commands should be possible to iterate over several calendars.  This is almost impossible with `calendar-cli` due to the way the configuration is made (perhaps we should require that connection parameters are given in a config file?)
 
 ## Details
 
-Add an event, task or journal entry:
+### Add an event, task or journal entry:
 
 ```
 kal --config-section=private_calendar add --set-location="Aker Brygge marina" event "new years party" 2032-12-31T20:00+5h 
@@ -33,7 +33,9 @@ While the specification for journal, todo and event are fairly similar, the non-
 
 The todo-item added above has both due timestamp and duration set, which is against the RFC.  It will be converted to dtstart and due before it's pushed to the calendar.
 
-To get things out from the calendar, one can use the kal agenda command.
+### Reading the calendar
+
+To get things out from the calendar, one can use the kal agenda command:
 
 ```
 kal agenda --config-section=private --config-section=work --agenda-days=30 --event-template="{dtstart} {summary} UID={uid}" --todo-template="{due} {summary} UID={uid}"
@@ -66,15 +68,15 @@ This should cover most regular needs for putting events on a calendar and managi
 
 Logical "and" should be assumed between filter selectors.  I feel uncomfortable with implementing support for paranthesis and logical operators, but there could probably be a --union parameter working as a "logical or", and some syntax should be made for the individual filters (but `--limit`, `--offset` and `--sort` should be processed after the union).  Perhaps `--categories=housework+gardenwork` should fetch everything with either "housework" or "gardenwork" as category, while `--categories=housework,kitchen` should fetch all housework to be done in the kitchen.  Or maybe `--categories=housework&gardenwork` and `--categories=housework|gardenwork` is less ambiguous.  It probably needs to be thought more through.
 
-sum_hours will sum the duration of all objects.  Journal entries cannot have duration, so for journal entries it will sum the duration of all parents to all the journals selected.  This is supposed to be equal to the total time spent working.
+sum_hours will sum the duration of all objects.  For tasks and events in the future, it's supposed to be the amount of time "committed", for tasks and events in the past, it is supposed to be the amount of time actually worked.  (Time tracking is tricky, the icalendar standard does not really support it, and journal entries cannot have duration, but I'll get back to that).
 
-## Pinning tasks to calendar
+### Pinning tasks to calendar
 
 The `pin` subcommand will "pin" one or more todo-items to some specific time on the calendar.  Duration will be copied.  The tasks will be serialized.  If there are conflicting events in the same calendar, the tasks will be put after the conflicting events.  No checks will be done to ensure that the tasks ends up within ordinary working hours, outside the night hours or before the due date.  Or perhaps some sanity checks should be done ... it will be a lot of cleanup-work to be done if one accidentally forgets "-1" and adds some hundreds of items to the calendar ...
 
 ```kal select --todo --categories=housework --smart-sort --limit=3 pin '2021-12-02 16:00'
 
-## Time tracking
+### Time tracking
 
 (see also [NEXT_LEVEL.md](NEXT_LEVEL.md))
 
