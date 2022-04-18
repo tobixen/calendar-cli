@@ -46,19 +46,19 @@ echo "## OK: Added the event, uid is $uid"
 
 echo "## Taking out the agenda for 2010-10-09 + four days"
 calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=4 --event-template='{description} {location}'
-echo $output | { grep -q 'this is a test calendar event Москва' && echo "## OK: found the event" ; } || echo "## FAIL: didn't find the event"
+echo $output | { grep -q 'this is a test calendar event Москва' && echo "## OK: found the event" ; } || error "didn't find the event"
 
 echo "## Taking out the agenda for 2010-10-10, with uid"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dtstart} {uid}'
-echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || echo "## FAIL: didn't find the UID"
+echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || error "didn't find the UID"
 
 echo "## Deleting events with uid $uid $uid1 $uid2"
 calendar_cli calendar delete --event-uid=$uid
 calendar_cli calendar delete --event-uid=$uid2
-calendar_cli calendar delete --event-uid=$uid3
+kal select --uid=$uid3 delete
 echo "## Searching again for the deleted event"
-calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1
-echo $output | { grep -q 'testing testing' && echo "## FAIL: still found the event" ; } || echo "## OK: didn't find the event"
+calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=3
+echo $output | { grep -q 'testing testing' && error "still found the event" ; } || echo "## OK: didn't find the event"
 
 echo "## Adding a full day event"
 calendar_cli calendar add --whole-day '2010-10-10+4d' 'whole day testing'
@@ -82,6 +82,7 @@ calendar_cli calendar delete --event-uid=$uid
 
 echo "## Same, using kal add ics"
 kal add ical --ical-file=$tmpfile
+
 rm $tmpfile
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
 echo "$output" | grep -q "whole day" || error "could not find the event"
@@ -160,15 +161,17 @@ echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
 calendar_cli todo add --set-categories scripttest "edit this task"
-echo test
 uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+kal add --set-categories scripttest todo "edit this task2"
+uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
 calendar_cli todo --categories scripttest list
-[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just added and nothing more"
+[ $(echo "$output" | wc -l) == 2 ] || error "We found more or less or none of the two todo items we just added"
 
 echo "## Editing the task"
 calendar_cli todo --categories scripttest edit --set-summary "editing" --add-categories "scripttest2"
+#kal select --todo --categories scripttest edit --add-categories "scripttest3"
 
 echo "## Verifying that the edits got through"
 calendar_cli todo --categories scripttest list

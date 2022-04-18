@@ -11,8 +11,8 @@ radicale_pid=$(jobs -l | perl -ne '/^\[\d+\]\+\s+(\d+)\s+Running/ && print $1')
 if [ -n "$radicale_pid" ]
 then
     echo "## Radicale now running on pid $radicale_pid"
-    calendar_cli="../calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
-    kal="../cal.py  --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
+    calendar_cli="../calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-pass=password1 --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
+    kal="../cal.py  --caldav-password=password1 --caldav-url=http://localhost:5232/ --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     echo "## Creating a calendar"
     $calendar_cli calendar create calendar-cli-test-calendar
     
@@ -21,7 +21,11 @@ then
     ## just get 404 when running tests.
     export calendar_cli
     export kal
+    echo "press enter to run tests"
+    read foo
     ./tests.sh
+    echo "press enter to take down test server"
+    read foo
     kill $radicale_pid
     sleep 0.3
 else
