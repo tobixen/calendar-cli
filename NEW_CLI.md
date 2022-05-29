@@ -1,3 +1,5 @@
+I'm currently working on a cal.py aka kal that eventually will replace calendar-cli.py
+
 ## General thoughts
 
 * calendar-cli should be a simple command line wrapper over existing python libraries.  It should not contain a lot of logic besides parsing command line options and arguments.  Logic that may be useful for python programmers should be pushed to other libraries, like the caldav-library, or be split into a new library.

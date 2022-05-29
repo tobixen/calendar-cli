@@ -1,3 +1,4 @@
+set -o pipefail
 outfile=$(mktemp)
 
 error() {

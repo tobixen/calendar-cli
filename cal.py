@@ -67,6 +67,7 @@ def cli(ctx, **kwargs):
     CalDAV Command Line Interface, in development.
 
     This command will eventually replace calendar-cli.
+    It's not ready for consumption.  Only use if you want to contribute/test.
     """
     ## The cli function will prepare a context object, a dict containing the
     ## caldav_client, principal and calendar

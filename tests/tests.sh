@@ -12,7 +12,28 @@ do
     [ -f $setup  ] && source $setup
 done
 
-echo "## CLEANUP from earlier failed test runs"
+if [ -z "$RUNTESTSNOPAUSE" ]
+then
+    echo "tests.sh"
+    echo
+    echo "Generally, tests.sh should only be run directly if you know what you are doing"
+    echo "You may want to use test_calendar-cli.sh instead"
+    echo
+    echo "This script will use the following commands to access a calendar server:"
+    echo
+    echo "$calendar_cli"
+    echo "$kal"
+    echo
+    echo "This may work if you have configured a calendar server."
+    echo "The tests will add and delete events and tasks."
+    echo "Content from 2010-10 may be deleted"
+    echo
+    echo "Press enter or ctrl-C"
+    read foo
+fi
+
+
+echo "## CLEANUP from earlier failed test runs, if any"
 
 QUIET=true
 for uid in $($calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=5 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
@@ -55,6 +76,7 @@ echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || error "didn
 echo "## Deleting events with uid $uid $uid1 $uid2"
 calendar_cli calendar delete --event-uid=$uid
 calendar_cli calendar delete --event-uid=$uid2
+calendar_cli calendar delete --event-uid=$uid3
 kal select --uid=$uid3 delete
 echo "## Searching again for the deleted event"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=3

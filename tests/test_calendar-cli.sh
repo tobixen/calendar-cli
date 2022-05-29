@@ -2,6 +2,11 @@
 
 storage=$(mktemp -d)
 
+echo "This script will attempt to set up a Radicale server and a Xandikos server and run the test code towards those two servers"
+echo "The test code itself is found in tests.sh"
+
+export RUNTESTSNOPAUSE="foo"
+
 echo "########################################################################"
 echo "## RADICALE"
 echo "########################################################################"
@@ -21,11 +26,17 @@ then
     ## just get 404 when running tests.
     export calendar_cli
     export kal
-    echo "press enter to run tests"
-    read foo
+    if [ -n "$DEBUG" ]
+    then
+	echo "press enter to run tests"
+	read foo
+    fi
     ./tests.sh
-    echo "press enter to take down test server"
-    read foo
+    if [ -n "$DEBUG" ]
+    then
+	echo "press enter to take down test server"
+	read foo
+    fi
     kill $radicale_pid
     sleep 0.3
 else
