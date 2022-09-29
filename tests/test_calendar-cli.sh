@@ -3,7 +3,7 @@
 storage=$(mktemp -d)
 
 echo "This script will attempt to set up a Radicale server and a Xandikos server and run the test code towards those two servers"
-echo "The test code itself is found in tests.sh"
+echo "The test code itself is found in tests.sh and tests_kal.sh"
 
 export RUNTESTSNOPAUSE="foo"
 
@@ -31,7 +31,8 @@ then
 	echo "press enter to run tests"
 	read foo
     fi
-    ./tests.sh
+    ./tests_kal.sh
+    #./tests.sh
     if [ -n "$DEBUG" ]
     then
 	echo "press enter to take down test server"
@@ -62,7 +63,8 @@ then
     kal="../cal.py  --caldav-url=http://localhost:8080/ --caldav-user=user"
     export calendar_cli
     export kal
-    ./tests.sh
+    ./tests_kal.sh
+    #./tests.sh
     kill $xandikos_pid
 else
     echo "## Could not start up xandikos (is it installed?).  Will skip running tests towards xandikos"

@@ -32,7 +32,8 @@ setup(
     py_modules=['cal'],
     install_requires=[
         'icalendar',
-        'caldav>=0.8.1',
+        'caldav>=0.10.0dev',
+#        'isodate',
         'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333 
         'tzlocal',
         'Click',

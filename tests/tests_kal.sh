@@ -1,5 +1,7 @@
 #!/bin/bash
 
+## TODO: all references to calendar-cli should be replaced with references to kal.  Work in progress!
+
 set -e
 
 ########################################################################
@@ -21,6 +23,7 @@ then
     echo
     echo "This script will use the following commands to access a calendar server:"
     echo
+    echo "$kal"
     echo "$calendar_cli"
     echo
     echo "This may work if you have configured a calendar server."
@@ -30,7 +33,6 @@ then
     echo "Press enter or ctrl-C"
     read foo
 fi
-
 
 echo "## CLEANUP from earlier failed test runs, if any"
 
@@ -45,49 +47,48 @@ unset QUIET
 
 echo "## EVENTS"
 
-echo "## testing $calendar_cli"
 echo "## this is a very simple test script without advanced error handling"
 echo "## if this test script doesn't output 'ALL TESTS COMPLETED!  YAY!' in the end, something went wrong"
 
 echo "## Attempting to add an event at 2010-10-09 20:00:00, 2 hours duration"
-calendar_cli calendar add '2010-10-09 20:00:00+2h' 'testing testing'
+kal add event 'testing testing' '2010-10-09 20:00:00+2h' 
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
 echo "## Attempting to add an event at 2010-10-10 20:00:00, CET (1 hour duration is default), with description and non-ascii location"
-calendar_cli calendar add '2010-10-10 20:00:00+01:00' 'testing testing' --set-description='this is a test calendar event' --set-location='Москва'
+kal add event 'testing testing' '2010-10-10 20:00:00+01:00' --set-description='this is a test calendar event' --set-location='Москва'
 uid2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid2" ] || error "got no UID back"
 
 echo "## Attempting to add an event at 2010-10-11 20:00:00, CET, 3h duration"
-calendar_cli calendar add '2010-10-11 20:00:00+01:00+3h' 'testing testing'
+kal add event 'testing testing' '2010-10-11 20:00:00+01:00+3h'
 uid3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 echo "## OK: Added the event, uid is $uid"
 
 echo "## Taking out the agenda for 2010-10-09 + four days"
-calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=4 --event-template='{description} {location}'
+kal select --start=2010-10-09 --end=+4d --event list --template='{DESCRIPTION} {LOCATION}'
 echo $output | { grep -q 'this is a test calendar event Москва' && echo "## OK: found the event" ; } || error "didn't find the event"
 
 echo "## Taking out the agenda for 2010-10-10, with uid"
-calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dtstart} {uid}'
+kal select --start=2010-10-10 --end=+1d --event list --template='{DTSTART.dt} {UID}'
 echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || error "didn't find the UID"
 
-echo "## Deleting events with uid $uid $uid1 $uid2"
-calendar_cli calendar delete --event-uid=$uid
-calendar_cli calendar delete --event-uid=$uid2
-calendar_cli calendar delete --event-uid=$uid3
+echo "## Deleting events with uid $uid $uid2 $uid3"
+kal select --event --uid=$uid delete
+kal select --event --uid=$uid2 delete
+kal select --event --uid=$uid3 delete
 
 echo "## Searching again for the deleted event"
-calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=3
+kal select --event --start=2010-10-10 --end=+3d list
 echo $output | { grep -q 'testing testing' && error "still found the event" ; } || echo "## OK: didn't find the event"
 
 echo "## Adding a full day event"
-calendar_cli calendar add --whole-day '2010-10-10+4d' 'whole day testing'
+kal add event 'whole day testing' '2010-10-10+4d' 
 uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 [ -n "$uid" ] || error "got no UID back"
 
 echo "## fetching the full day event, in ics format"
-calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+kal select --start=2010-10-13 --end=+1d --event list --ics
 
 echo "$output" | grep -q "whole day" || error "could not find the event"
 echo "$output" | grep -q "20101010" || error "could not find the date"
@@ -99,47 +100,24 @@ tmpfile=$(mktemp)
 cat $outfile > $tmpfile
 
 echo "## cleanup, delete it"
-calendar_cli calendar delete --event-uid=$uid
+kal select --event --uid=$uid delete
 
 echo "## Same, using kal add ics"
-calendar_cli calendar  addics --file $tmpfile
-
+kal add ical --ical-file=$tmpfile
 rm $tmpfile
-calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
+
+kal select --event --start=2010-10-13 --end=2010-10-14 list --ics
 echo "$output" | grep -q "whole day" || error "could not find the event"
 echo "$output" | grep -q "20101010" || error "could not find the date"
 echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
+echo "$output" | grep UID
 echo "OK: found the event"
 echo "## cleanup, delete it"
-calendar_cli calendar delete --event-uid=$uid
 
-## TODO - procrastinated, waiting for response on https://github.com/dateutil/dateutil/issues/1184 
-#uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-#[ -n "$uid" ] || error "got no UID back"
-#calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
-#echo "$output" | grep -q "whole day" || error "could not find the event"
-#echo "$output" | grep -q "20101010" || error "could not find the date"
-#echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
-#echo "OK: found the event"
-#echo "## cleanup, delete it"
-#calendar_cli calendar delete --event-uid=$uid
+kal select --event --uid=$uid delete
 
-echo "## A full day event should be implicit when giving dates rather than timestamps"
-calendar_cli calendar add '2010-10-10+3d' 'whole day testing'
-uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-[ -n "$uid" ] || error "got no UID back"
-
-echo "## fetching the full day event, in ics format"
-calendar_cli  --icalendar calendar agenda --from-time=2010-10-12 --agenda-days=1
-
-echo "$output" | grep -q "whole day" || error "could not find the event"
-echo "$output" | grep -q "20101010" || error "could not find the date"
-echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
-echo "OK: found the event"
-
-echo "## cleanup, delete it"
-calendar_cli calendar delete --event-uid=$uid
-
+## TODO: PROCRASTINATING TIME ZONES.  Waiting for a release of the icalendar library that doesn't depend on pytz
+if [ -n "" ]; then
 echo "## testing timezone support"
 echo "## Create a UTC event"
 calendar_cli --timezone='UTC' calendar add '2010-10-09 12:00:00+10m' 'testevent with a UTC timezone'
@@ -175,30 +153,34 @@ calendar_cli --timezone=Europe/Oslo calendar agenda --from-time='2010-10-09 15:5
 
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
+fi
 
 echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
-calendar_cli todo add --set-categories scripttest "edit this task"
+kal add todo --set-category scripttest "edit this task"
 uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-calendar_cli todo add --set-categories scripttest todo "edit this task2"
+kal add todo --set-category scripttest "edit this task2"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
-calendar_cli todo --categories scripttest list
+kal select --todo --category scripttest list
 [ $(echo "$output" | wc -l) == 2 ] || error "We found more or less or none of the two todo items we just added"
 
 echo "## Editing the task"
-calendar_cli todo --categories scripttest edit --set-summary "editing" --add-categories "scripttest2"
+kal select --todo --category scripttest edit --set-summary "editing" --add-category "scripttest2"
 
 echo "## Verifying that the edits got through"
-calendar_cli todo --categories scripttest list
+kal select --todo --category scripttest list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
-calendar_cli todo --categories scripttest2 list
+kal select --todo --category scripttest2 list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
-calendar_cli todo --comment editing list
+kal select --todo --category scripttest3 list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+kal select --todo --comment editing list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
 
+if [ -n "" ]; then
 echo "## Complete the task"
 calendar_cli todo --categories scripttest complete
 calendar_cli todo --categories scripttest list
@@ -228,8 +210,9 @@ calendar_cli todo --hide-parents --categories scripttest complete
 calendar_cli todo --hide-parents --categories scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
 
-echo "## ALL TESTS COMPLETED!  YAY!"
+fi
 
+echo "## some kal TESTS COMPLETED SUCCESSFULLY!  YAY!"
 
 rm $outfile
 

@@ -13,6 +13,8 @@ There is a "competing" project at https://github.com/geier/khal - you may want t
 New vs old interface
 --------------------
 
+DO YOU HAVE OPINIONS ON WHAT COLOR TO PAINT THE BIKE SHED WITH?  VISIT https://github.com/tobixen/calendar-cli/issues/88 NOW!
+
 calendar-cli.py is the old interface, it will hang around and be supported for some time to come.  cal.py is the new interface, but until version 1.0 is ready, there will still be functionality in calendar-cli that isn't mirrored to cal.py.
 
 I wanted a short and easy command name, since `cal(1)` is already a popular Unix command, I'm considering to install it into /usr/bin with the name `kal`, but I'm a bit uncertain (seems either like a bad typo or an attempt on localizing the command into my native language?)
