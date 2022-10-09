@@ -163,7 +163,7 @@ uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 kal add todo --set-class=CONFIDENTIAL --set-category scripttest "edit this task2"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 kal add todo --set-class=PRIVATE "another task for testing sorting, offset and limit"
-uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+uidtodo3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
 kal select --todo --category scripttest list
@@ -186,6 +186,9 @@ echo "## Sort order and limit.  CONFIDENTIAL class should come first.  Only one 
 kal select --todo --sort-key=CLASS --limit 1 list --template '{CLASS}'
 echo "$output" | grep -q CONFIDENTIAL || error "Sorting does not work as expected"
 echo "$output" | grep -q PRIVATE && error "Limit does not work as expected"
+echo "## print-uid subcommand will print the uid of the first thing found"
+kal select --todo --sort-key=CLASS print-uid
+[ $output == $uidtodo2 ] || error "print-uid subcommand does not work"
 
 echo "## Offset.  PRIVATE should come in the middle"
 kal select --todo --sort-key=class --limit 1 --offset 1 list --template '{CLASS}'
@@ -212,36 +215,38 @@ echo "## Test that we can list out completed tasks, and also undo completion"
 kal select --todo --category scripttest --include-completed edit --uncomplete
 kal select --todo --category scripttest list
 [ -z "$output" ] && error "--uncomplete does not work!"
+kal select --todo --uid $uidtodo1 --uid $uidtodo2 --uid $uidtodo3 delete --multi-delete
 
-kal select --todo --uid $uidtodo1 delete
-
-if [ -n "" ]; then
-## parent-child relationships
+echo "## parent-child relationships"
 echo "## Going to add three todo-items with children/parent relationships"
-calendar_cli todo add --ste-categories scripttest "this is a grandparent"
+kal add todo --set-category scripttest "this is a grandparent"
+uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+kal add todo  --set-category scripttest --set-parent $uidtodo1 "this is both a parent and a child"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-calendar_cli todo --categories=scripttest add --set-categories scripttest --is-child "this is a parent and a child"
+kal add todo --set-category scripttest --set-parent $uidtodo1 --set-parent $uidtodo2 "this task is a child of it's grandparent ... (what?)"
 uidtodo3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-calendar_cli todo --categories=scripttest add --set-categories scripttest --is-child "this task has two parents"
-uidtodo4=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-calendar_cli todo --categories scripttest list
+kal select --todo --category scripttest list
 [ $(echo "$output" | wc -l) == 3 ] && echo "## OK: found three tasks"
-calendar_cli todo --hide-parents --categories scripttest list
+kal select --todo --category scripttest --skip-parents list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
-echo "## Going to complete the children task"
-calendar_cli todo --hide-parents --categories scripttest complete
-calendar_cli todo --hide-parents --categories scripttest list
+kal select --todo --category scripttest --skip-children list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
-calendar_cli todo --hide-parents --categories scripttest complete
-calendar_cli todo --hide-parents --categories scripttest list
+echo "## Going to complete the grandchildren task"
+kal select --todo --skip-parents --category scripttest edit --complete
+kal select --todo --skip-parents --category scripttest list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
-calendar_cli todo --hide-parents --categories scripttest complete
-calendar_cli todo --hide-parents --categories scripttest list
+echo "## Going to complete the child task"
+kal select --todo --skip-parents --category scripttest edit --complete
+kal select --todo --skip-parents --category scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found only one task now"
+echo "## Going to complete the grandparent task"
+kal select --todo --skip-parents --category scripttest edit --complete
+kal select --todo --skip-parents --category scripttest list
+[ -z "$output" ] && echo "## OK: found no tasks now"
+kal select --todo --category scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
 
 ## TODO: test completion of recurring task
-
-fi
 
 echo "## some kal TESTS COMPLETED SUCCESSFULLY!  YAY!"
 

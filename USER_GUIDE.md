@@ -109,6 +109,10 @@ One thing that may be particularly useful is to take out the UID fields.  With U
 kal select --todo list --template='{UID} {SUMMARY}'
 ```
 
+### Printing a UID
+
+The subcommand `print-uid` will print out an UID.  It's for convenience, the same can be achieved by doing a `select (...) --limit 1 list --template='{UID}'`
+
 ### Editing and deleting objects
 
 ```

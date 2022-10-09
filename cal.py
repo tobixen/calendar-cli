@@ -32,6 +32,8 @@ import re
 from icalendar import prop
 from lib.template import Template
 
+list_type = list
+
 ## should make some subclasses of click.ParamType:
 
 ## class DateOrDateTime - perhaps a subclass of click.DateTime, returns date
@@ -46,7 +48,7 @@ from lib.template import Template
 
 ## TODO: maybe find those attributes through the icalendar library? icalendar.cal.singletons, icalendar.cal.multiple, etc
 attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary', 'class']
-attr_txt_many = ['category', 'comment', 'contact', 'resources']
+attr_txt_many = ['category', 'comment', 'contact', 'resources', 'parent', 'child']
 
 def parse_dt(input, return_type=None):
     """Parse a datetime or a date.
@@ -191,6 +193,10 @@ def _set_attr_options_(func, verb):
         func = click.option(f"--{verb1}{foo}", help=f"{verb} ical attribute {foo}", multiple=True)(func)
     return func
 
+def _abort(message):
+    click.echo(message)
+    raise click.Abort(message)
+
 def _set_attr_options(verb=""):
     return lambda func: _set_attr_options_(func,verb)
 
@@ -206,10 +212,12 @@ def _set_attr_options(verb=""):
 @click.option('--end', help='do a time search, with this end timestamp (or duration)')
 @click.option('--timespan', help='do a time search for this interval')
 @click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort', multiple=True)
+@click.option('--skip-parents/--include-parents', help="Skip parents if it's children is selected.  Useful for finding tasks that can be started if parent depends on child", default=False)
+@click.option('--skip-children/--include-children', help="Skip children if it's parent is selected.  Useful for getting an overview of the big picture if children are subtasks", default=False)
 @click.option('--limit', help='Number of objects to show', type=int)
 @click.option('--offset', help='SKip the first objects', type=int)
 @click.pass_context
-def select(ctx, all, uid, abort_on_missing_uid, sort_key, limit, offset, **kwargs_):
+def select(ctx, all, uid, abort_on_missing_uid, sort_key, skip_parents, skip_children, limit, offset, **kwargs_):
     """
     select/search/filter tasks/events, for listing/editing/deleting, etc
     """
@@ -249,7 +257,7 @@ def select(ctx, all, uid, abort_on_missing_uid, sort_key, limit, offset, **kwarg
         if not cnt:
             missing_uids.append(uid_)
     if abort_on_missing_uid and missing_uids:
-        raise click.Abort(f"Did not find the following uids in any calendars: {missing_uids}")
+        _abort(f"Did not find the following uids in any calendars: {missing_uids}")
     if uid:
         return
 
@@ -270,8 +278,26 @@ def select(ctx, all, uid, abort_on_missing_uid, sort_key, limit, offset, **kwarg
         elif kwargs_[attr]:
             kwargs[attr] = kwargs[attr][0]
 
+    ## TODO: special handling of parent and child! (and test for that!)
+
     for c in ctx.obj['calendars']:
         objs.extend(c.search(**kwargs))
+
+    if skip_children or skip_parents:
+        objs_by_uid = {}
+        for obj in objs:
+            objs_by_uid[obj.icalendar_instance.subcomponents[0]['uid']] = obj
+        for obj in objs:
+            rels = obj.icalendar_instance.subcomponents[0].get('RELATED-TO', [])
+            rels = rels if isinstance(rels, list_type) else [ rels ]
+            for rel in rels:
+                rel_uid = rel
+                rel_type = rel.params.get('REL-TYPE', None)
+                if ((rel_type == 'CHILD' and skip_parents) or (rel_type == 'PARENT' and skip_children)) and rel_uid in objs_by_uid and uid in objs_by_uid:
+                    del objs_by_uid[uid]
+                if ((rel_type == 'PARENT' and skip_parents) or (rel_type == 'CHILD' and skip_children)) and rel_uid in objs_by_uid:
+                    del objs_by_uid[rel_uid]
+        objs = objs_by_uid.values()
 
     ## OPTIMIZE TODO: sorting the list multiple times rather than once is a bit of brute force, if there are several sort keys and long list of objects, we should sort once and consider all sort keys while sorting
     ## TODO: Consider that an object may be expanded and contain lots of event instances.  We will then need to expand the caldav.Event object into multiple objects, each containing one recurrance instance.  This should probably be done on the caldav side of things.
@@ -294,7 +320,7 @@ def select(ctx, all, uid, abort_on_missing_uid, sort_key, limit, offset, **kwarg
         ctx.obj['objs'] = ctx.obj['objs'][offset:]
     if limit is not None:
         ctx.obj['objs'] = ctx.obj['objs'][0:limit]
-        
+
 @select.command()
 @click.option('--ics/--no-ics', default=False, help="Output in ics format")
 @click.option('--template', default="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
@@ -317,6 +343,11 @@ def list(ctx, ics, template):
             click.echo(template.format(**sub))
 
 @select.command()
+@click.pass_context
+def print_uid(ctx):
+    click.echo(ctx.obj['objs'][0].icalendar_instance.subcomponents[0]['UID'])
+
+@select.command()
 @click.option('--multi-delete/--no-multi-delete', default=None, help="Delete multiple things without confirmation prompt")
 @click.pass_context
 def delete(ctx, multi_delete, **kwargs):
@@ -327,7 +358,7 @@ def delete(ctx, multi_delete, **kwargs):
     if multi_delete is None and len(objs)>1:
         multi_delete = click.confirm(f"OK to delete {len(objs)} items?")
     if len(objs)>1 and not multi_delete:
-        raise click.Abort(f"Not going to delete {len(objs)} items")
+        _abort(f"Not going to delete {len(objs)} items")
     for obj in objs:
         obj.delete()
 
@@ -341,9 +372,12 @@ def edit(ctx, add_category=None, complete=None, **kwargs):
     for obj in ctx.obj['objs']:
         ie = obj.icalendar_instance.subcomponents[0]
         for arg in ctx.obj['set_args']:
-            if arg in ie:
-                ie.pop(arg)
-            ie.add(arg, ctx.obj['set_args'][arg])
+            if arg in ('child', 'parent'):
+                obj.set_relation(arg, ctx.obj['set_args'][arg])
+            else:
+                if arg in ie:
+                    ie.pop(arg)
+                ie.add(arg, ctx.obj['set_args'][arg])
         if add_category:
             if 'categories' in ie:
                 cats = ie.pop('categories').cats
@@ -384,7 +418,7 @@ def add(ctx, **kwargs):
     Save new objects on calendar(s)
     """
     if len(ctx.obj['calendars'])>1 and kwargs['multi_add'] is False:
-        raise click.Abort("Giving up: Multiple calendars given, but --no-multi-add is given")
+        _abort("Giving up: Multiple calendars given, but --no-multi-add is given")
     ## TODO: crazy-long if-conditions can be refactored - see delete on how it's done there
     if (kwargs['first_calendar'] or
         (len(ctx.obj['calendars'])>1 and
@@ -397,7 +431,7 @@ def add(ctx, **kwargs):
             click.confirm(f"First calendar on the list has url {calendar.url} - should we add there? (tip: use --calendar-url={calendar.url} or --first_calendar to avoid this prompt in the future)"))):
             ctx.obj['calendars'] = [ calendar ]
         else:
-            raise click.Abort("Giving up: Multiple calendars found/given, please specify which calendar you want to use")
+            _abort("Giving up: Multiple calendars found/given, please specify which calendar you want to use")
 
     ctx.obj['ical_fragment'] = "\n".join(kwargs['add_ical_line'])
 
@@ -442,7 +476,7 @@ def todo(ctx, **kwargs):
     kwargs['summary'] = " ".join(kwargs['summary'])
     _process_set_args(ctx, kwargs)
     if not ctx.obj['set_args']['summary']:
-        raise click.Abort("denying to add a TODO with no summary given")
+        _abort("denying to add a TODO with no summary given")
         return
     for cal in ctx.obj['calendars']:
         todo = cal.save_todo(ical=ctx.obj['ical_fragment'], **ctx.obj['set_args'], no_overwrite=True)
