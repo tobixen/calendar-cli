@@ -45,7 +45,7 @@ from lib.template import Template
 ## /usr/lib/*/site-packages/click/types.py on how to do this.
 
 ## TODO: maybe find those attributes through the icalendar library? icalendar.cal.singletons, icalendar.cal.multiple, etc
-attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary']
+attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary', 'class']
 attr_txt_many = ['category', 'comment', 'contact', 'resources']
 
 def parse_dt(input, return_type=None):
@@ -205,8 +205,11 @@ def _set_attr_options(verb=""):
 @click.option('--start', help='do a time search, with this start timestamp')
 @click.option('--end', help='do a time search, with this end timestamp (or duration)')
 @click.option('--timespan', help='do a time search for this interval')
+@click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort', multiple=True)
+@click.option('--limit', help='Number of objects to show', type=int)
+@click.option('--offset', help='SKip the first objects', type=int)
 @click.pass_context
-def select(ctx, all, uid, abort_on_missing_uid, **kwargs_):
+def select(ctx, all, uid, abort_on_missing_uid, sort_key, limit, offset, **kwargs_):
     """
     select/search/filter tasks/events, for listing/editing/deleting, etc
     """
@@ -232,7 +235,7 @@ def select(ctx, all, uid, abort_on_missing_uid, **kwargs_):
     missing_uids = []
     for uid_ in uid:
         comp_filter=None
-        if kwargs['event']:
+        if kwargs_['event']:
             comp_filter='VEVENT'
         if kwargs_['todo']:
             comp_filter='VTODO'
@@ -270,6 +273,28 @@ def select(ctx, all, uid, abort_on_missing_uid, **kwargs_):
     for c in ctx.obj['calendars']:
         objs.extend(c.search(**kwargs))
 
+    ## OPTIMIZE TODO: sorting the list multiple times rather than once is a bit of brute force, if there are several sort keys and long list of objects, we should sort once and consider all sort keys while sorting
+    ## TODO: Consider that an object may be expanded and contain lots of event instances.  We will then need to expand the caldav.Event object into multiple objects, each containing one recurrance instance.  This should probably be done on the caldav side of things.
+    for skey in reversed(sort_key):
+        ## If the key starts with -, sorting should be reversed
+        if skey[0] == '-':
+            reverse = True
+            skey=skey[1:]
+        else:
+            reverse = False
+        ## if the key contains {}, it should be considered to be a template
+        if '{' in skey:
+            fkey = lambda obj: Template(skey).format(**obj.icalendar_instance.subcomponents[0])
+        else:
+            fkey = lambda obj: obj.icalendar_instance.subcomponents[0][skey]
+        ctx.obj['objs'].sort(key=fkey, reverse=reverse)
+
+    ## OPTIMIZE TODO: this is also suboptimal, if ctx.obj is a very long list
+    if offset is not None:
+        ctx.obj['objs'] = ctx.obj['objs'][offset:]
+    if limit is not None:
+        ctx.obj['objs'] = ctx.obj['objs'][0:limit]
+        
 @select.command()
 @click.option('--ics/--no-ics', default=False, help="Output in ics format")
 @click.option('--template', default="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
@@ -308,9 +333,10 @@ def delete(ctx, multi_delete, **kwargs):
 
 @select.command()
 @click.option('--add-category', default=None, help="Delete multiple things without confirmation prompt", multiple=True)
+@click.option('--complete/--uncomplete', default=None, help="Mark task(s) as completed")
 @_set_attr_options(verb='set')
 @click.pass_context
-def edit(ctx, add_category=None, **kwargs):
+def edit(ctx, add_category=None, complete=None, **kwargs):
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
         ie = obj.icalendar_instance.subcomponents[0]
@@ -325,7 +351,11 @@ def edit(ctx, add_category=None, **kwargs):
                 cats = []
             cats.extend(add_category)
             ie.add('categories', cats)
-    obj.save()
+        if complete:
+            obj.complete()
+        elif complete is False:
+            obj.uncomplete()
+        obj.save()
 
 
 @select.command()
@@ -393,7 +423,7 @@ def _process_set_args(ctx, kwargs):
             ctx.obj['set_args'][x[4:]] = kwargs[x]
     if 'summary' in kwargs:
         ctx.obj['set_args']['summary'] = ctx.obj['set_args'].get('summary', '') + kwargs['summary']
-    if kwargs['ical_fragment']:
+    if 'ical_fragment' in kwargs:
         ctx.obj['set_args']['ics'] = kwargs['ical_fragment']
 
 @add.command()

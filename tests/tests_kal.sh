@@ -158,9 +158,11 @@ fi
 echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
-kal add todo --set-category scripttest "edit this task"
+kal add todo --set-class=PUBLIC --set-category scripttest "edit this task"
 uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-kal add todo --set-category scripttest "edit this task2"
+kal add todo --set-class=CONFIDENTIAL --set-category scripttest "edit this task2"
+uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
+kal add todo --set-class=PRIVATE "another task for testing sorting, offset and limit"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
@@ -180,16 +182,43 @@ kal select --todo --category scripttest3 list
 kal select --todo --comment editing list
 [ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
 
-if [ -n "" ]; then
-echo "## Complete the task"
-calendar_cli todo --categories scripttest complete
-calendar_cli todo --categories scripttest list
-[ -z "$output" ] && echo "## OK: todo-item is done"
-calendar_cli todo --todo-uid $uidtodo1 delete
+echo "## Sort order and limit.  CONFIDENTIAL class should come first.  Only one task should be returned"
+kal select --todo --sort-key=CLASS --limit 1 list --template '{CLASS}'
+echo "$output" | grep -q CONFIDENTIAL || error "Sorting does not work as expected"
+echo "$output" | grep -q PRIVATE && error "Limit does not work as expected"
 
+echo "## Offset.  PRIVATE should come in the middle"
+kal select --todo --sort-key=class --limit 1 --offset 1 list --template '{CLASS}'
+echo "$output" | grep -q PRIVATE || error "Offset does not work as expected"
+
+echo "## Reverse order.  PUBLIC should come first"
+kal select --todo --sort-key=-CLASS --limit 1 list --template '{CLASS}'
+echo "$output" | grep -q PUBLIC || error "Reverse sort does not work as expected"
+
+echo "## Templating.  The task without category should come first or last"
+kal select --todo --sort-key='{CATEGORIES.cats[0]:?aaa?}' --limit 1 list --template '{SUMMARY}'
+echo "$output" | grep -q 'another task' || error "sort by template not working as expected"
+kal select --todo --sort-key='{CATEGORIES.cats[0]:?zzz?}' --limit 1 list --template '{SUMMARY}'
+echo "$output" | grep -q 'another task' && error "sort by template not working as expected"
+
+## TODO: add tests for limit!=1 and no limit
+## TODO: add tests for multiple sort keys
+
+echo "## Complete the task"
+kal select --todo --category scripttest edit --complete
+kal select --todo --category scripttest list
+[ -z "$output" ] && echo "## OK: todo-item is done"
+echo "## Test that we can list out completed tasks, and also undo completion"
+kal select --todo --category scripttest --include-completed edit --uncomplete
+kal select --todo --category scripttest list
+[ -z "$output" ] && error "--uncomplete does not work!"
+
+kal select --todo --uid $uidtodo1 delete
+
+if [ -n "" ]; then
 ## parent-child relationships
 echo "## Going to add three todo-items with children/parent relationships"
-calendar_cli todo add --set-categories scripttest "this is a grandparent"
+calendar_cli todo add --ste-categories scripttest "this is a grandparent"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 calendar_cli todo --categories=scripttest add --set-categories scripttest --is-child "this is a parent and a child"
 uidtodo3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
@@ -209,6 +238,8 @@ calendar_cli todo --hide-parents --categories scripttest list
 calendar_cli todo --hide-parents --categories scripttest complete
 calendar_cli todo --hide-parents --categories scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
+
+## TODO: test completion of recurring task
 
 fi
 
