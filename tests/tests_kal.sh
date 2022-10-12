@@ -158,29 +158,17 @@ fi
 echo "## TODOS / TASK LISTS"
 
 echo "## Attempting to add a task with category 'scripttest'"
-kal add todo --set-class=PUBLIC --set-category scripttest "edit this task"
+kal add todo --set-class=PRIVATE --set-category scripttest "edit this task"
 uidtodo1=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 kal add todo --set-class=CONFIDENTIAL --set-category scripttest "edit this task2"
 uidtodo2=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
-kal add todo --set-class=PRIVATE "another task for testing sorting, offset and limit"
+kal add todo --set-class=PUBLIC "another task for testing sorting, offset and limit"
 uidtodo3=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 
 echo "## Listing out all tasks with category set to 'scripttest'"
 kal select --todo --category scripttest list
 [ $(echo "$output" | wc -l) == 2 ] || error "We found more or less or none of the two todo items we just added"
 
-echo "## Editing the task"
-kal select --todo --category scripttest edit --set-summary "editing" --add-category "scripttest2"
-
-echo "## Verifying that the edits got through"
-kal select --todo --category scripttest list
-[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
-kal select --todo --category scripttest2 list
-[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
-kal select --todo --category scripttest3 list
-[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
-kal select --todo --comment editing list
-[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
 
 echo "## Sort order and limit.  CONFIDENTIAL class should come first.  Only one task should be returned"
 kal select --todo --sort-key=CLASS --limit 1 list --template '{CLASS}'
@@ -189,6 +177,10 @@ echo "$output" | grep -q PRIVATE && error "Limit does not work as expected"
 echo "## print-uid subcommand will print the uid of the first thing found"
 kal select --todo --sort-key=CLASS print-uid
 [ $output == $uidtodo2 ] || error "print-uid subcommand does not work"
+
+kal select --todo --sort-key='class' --limit 2 list --template '{CLASS}'
+[ $(echo "$output" | wc -l) == 2 ] && echo "## OK: limit=2 working"
+echo "$output" | grep -q PRIVATE || error "Limit/sorting does not work as expected"
 
 echo "## Offset.  PRIVATE should come in the middle"
 kal select --todo --sort-key=class --limit 1 --offset 1 list --template '{CLASS}'
@@ -204,8 +196,27 @@ echo "$output" | grep -q 'another task' || error "sort by template not working a
 kal select --todo --sort-key='{CATEGORIES.cats[0]:?zzz?}' --limit 1 list --template '{SUMMARY}'
 echo "$output" | grep -q 'another task' && error "sort by template not working as expected"
 
-## TODO: add tests for limit!=1 and no limit
+echo "## Utilizing two sort keys"
+kal select --todo --sort-key='{CATEGORIES.cats[0]:?zzz?}' --sort-key=CLASS  --limit 1 list --template '{CLASS}'
+[ "$output" == "CONFIDENTIAL" ] || error "two sort keys didn't work as expected"
+kal select --todo --sort-key='{CATEGORIES.cats[0]:?zzz?}' --sort-key=-CLASS  --limit 1 list --template '{CLASS}'
+[ "$output" == "PRIVATE" ] || error "two sort keys didn't work as expected"
+
+echo "## Editing the task"
+kal select --todo --category scripttest edit --set-summary "editing" --add-category "scripttest2"
+
 ## TODO: add tests for multiple sort keys
+
+echo "## Verifying that the edits got through"
+kal select --todo --category scripttest list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+kal select --todo --category scripttest2 list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+kal select --todo --category scripttest3 list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+kal select --todo --comment editing list
+[ $(echo "$output" | wc -l) == 1 ] && echo "## OK: found the todo item we just edited and nothing more"
+
 
 echo "## Complete the task"
 kal select --todo --category scripttest edit --complete
@@ -246,7 +257,28 @@ kal select --todo --skip-parents --category scripttest list
 kal select --todo --category scripttest list
 [ -z "$output" ] && echo "## OK: found no tasks now"
 
-## TODO: test completion of recurring task
+kal select --todo --uid $uidtodo1 --uid $uidtodo2 --uid $uidtodo3 delete --multi-delete
+
+echo "## test completion of recurring task"
+kal add todo --set-category=scripttest --set-rrule="FREQ=YEARLY;COUNT=2" "this is a yearly task to be performed twice"
+uidtodo=$(echo "$output" | perl -ne '/uid=(.*)$/ && print $1')
+kal select --todo list --template='{UID}'
+## since no time range is given, the task cannot be expanded
+[ "$output" == "$uidtodo" ] || error "weird problem"
+echo "## completing it should efficiently move the due one year into the future"
+kal select --todo complete
+kal select --todo list --template='{DUE.dt:%F}'
+echo "$output" | grep -q "$(date -d '+1 year' +%F)" || error "completion of event with RRULE did not go so well"
+echo "## since count is set to two, completing it for the second time should complete the whole thing"
+kal select --todo complete
+[ -z "$output" ] && echo "## OK: found no tasks now"
+kal select --todo --uid $uidtodo delete
+
+echo "## test completion of recurring task with fixed occurance time"
+kal add todo --set-category=scripttest --set-rrule='FREQ=YEARLY;BYMONTH=1;BYMONTHDAY=1;BYHOUR=13;BYMINUTE=0;BYSECOND=0' "This task should be done next time 1st of January"
+kal select --todo complete
+kal select --todo list --template='{DUE.dt:%F}'
+echo "$output" | grep -q "$(date -d '+1 year' +%Y)-01-01" || error "completion of event with RRULE did not go so well"
 
 echo "## some kal TESTS COMPLETED SUCCESSFULLY!  YAY!"
 

@@ -47,7 +47,7 @@ list_type = list
 ## /usr/lib/*/site-packages/click/types.py on how to do this.
 
 ## TODO: maybe find those attributes through the icalendar library? icalendar.cal.singletons, icalendar.cal.multiple, etc
-attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary', 'class']
+attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary', 'class', 'rrule']
 attr_txt_many = ['category', 'comment', 'contact', 'resources', 'parent', 'child']
 
 def parse_dt(input, return_type=None):
@@ -365,9 +365,18 @@ def delete(ctx, multi_delete, **kwargs):
 @select.command()
 @click.option('--add-category', default=None, help="Delete multiple things without confirmation prompt", multiple=True)
 @click.option('--complete/--uncomplete', default=None, help="Mark task(s) as completed")
+@click.option('--complete-recurrence-mode', default='safe', help="Completion of recurrent tasks, mode to use - can be 'safe', 'thisandfuture' or '' (see caldav library for details)")
 @_set_attr_options(verb='set')
 @click.pass_context
-def edit(ctx, add_category=None, complete=None, **kwargs):
+def edit(*largs, **kwargs):
+    return _edit(*largs, **kwargs)
+
+def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe', **kwargs):
+    """
+    Edits a task/event/journal
+    """
+    if 'recurrence_mode' in kwargs:
+        complete_recurrence_mode = kwargs.pop('recurrence_mode')
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
         ie = obj.icalendar_instance.subcomponents[0]
@@ -386,7 +395,7 @@ def edit(ctx, add_category=None, complete=None, **kwargs):
             cats.extend(add_category)
             ie.add('categories', cats)
         if complete:
-            obj.complete()
+            obj.complete(handle_rrule=complete_recurrence_mode, rrule_mode=complete_recurrence_mode)
         elif complete is False:
             obj.uncomplete()
         obj.save()
@@ -394,8 +403,12 @@ def edit(ctx, add_category=None, complete=None, **kwargs):
 
 @select.command()
 @click.pass_context
+@click.option('--recurrence-mode', default='safe', help="Completion of recurrent tasks, mode to use - can be 'safe', 'thisandfuture' or '' (see caldav library for details)")
 def complete(ctx, **kwargs):
-    raise NotImplementedError()
+    """
+    Mark tasks as completed (alias for edit --complete)
+    """
+    return _edit(ctx, complete=True, **kwargs)
 
 @select.command()
 @click.pass_context
@@ -451,9 +464,17 @@ def ical(ctx, ical_data, ical_file):
 def _process_set_args(ctx, kwargs):
     ctx.obj['set_args'] = {}
     for x in kwargs:
-        if x == 'set_category' and kwargs[x] != ():
+        if kwargs[x] is None or kwargs[x]==():
+            continue
+        if x == 'set_rrule':
+            rrule = {}
+            for split1 in kwargs[x].split(';'):
+                k,v = split1.split('=')
+                rrule[k] = v
+            ctx.obj['set_args']['rrule'] = rrule
+        elif x == 'set_category':
             ctx.obj['set_args']['categories'] = kwargs[x]
-        elif x.startswith('set_') and kwargs[x] is not None and kwargs[x] != ():
+        elif x.startswith('set_'):
             ctx.obj['set_args'][x[4:]] = kwargs[x]
     if 'summary' in kwargs:
         ctx.obj['set_args']['summary'] = ctx.obj['set_args'].get('summary', '') + kwargs['summary']
