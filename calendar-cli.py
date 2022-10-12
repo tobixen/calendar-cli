@@ -758,26 +758,25 @@ def todo_complete(caldav_conn, args):
                 if hasattr(remaining_task.instance.vtodo, 'recurrence_id'):
                     del remaining_task.instance.vtodo.recurrence_id
                 remaining_task.instance.vtodo.add('recurrence-id')
-                remaining_task.instance.vtodo.recurrence_id.value = next ## TODO: should be same type as dtstart (date or datetime)
                 remaining_task.instance.vtodo.dtstart.value = next ## TODO: should be same type as dtstart (date or datetime)
                 remaining_task.instance.vtodo.recurrence_id.params['RANGE'] = [ 'THISANDFUTURE' ]
                 remaining_task.instance.vtodo.rrule
+                count_search = re.search('COUNT=(\d+)', completed_task.instance.vtodo.rrule.value)
+                if count_search:
+                    remaining_task.instance.vtodo.rrule.value = re.replace('COUNT=(\d+)', 'COUNT=%d' % int(count_search.group(1))-1)
                 remaining_task.save()
 
                 ## the completed task should have recurrence id set to current time
                 ## count in rrule should decrease
+                completed_task.instance.vtodo.remove(completed_task.instance.vtodo.rrule)
                 if hasattr(completed_task.instance.vtodo, 'recurrence_id'):
                     del completed_task.instance.vtodo.recurrence_id
                 completed_task.instance.vtodo.add('recurrence-id')
                 completed_task.instance.vtodo.recurrence_id.value = datetime.now()
                 completed_task.instance.vtodo.dtstart.value = datetime.now()
-                count_search = re.search('COUNT=(\d+)', completed_task.instance.vtodo.rrule.value)
-                if count_search:
-                    completed_task.instance.vtodo.rrule.value = re.replace('COUNT=(\d+)', 'COUNT=%d' % int(count_search.group(1))-1)
                 completed_task.complete()
 
                 continue
-
         task.complete()
 
 

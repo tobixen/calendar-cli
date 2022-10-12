@@ -75,14 +75,18 @@ Recurring tasks
 
 The standard allows for recurring tasks, but doesn't really flesh out what it means that a task is recurring - except that it should show up on date searches if any of the recurrances are within the date search range.  Date searches for future recurrances of tasks is ... quite exotic, why would anyone want to do that?
 
-There are two kind of recurrances:
+From a "user perspective", I think there are two kind of recurrences:
 
-* Specified intervals - say, the floor should be cleaned every week.  You usually do it every Monday, but one week everything is so hectic that you postpone it all until late Sunday evening.  It would be irrational to wash it again the next day.
-* Fixed-time.  If you actually get paid for washing the floor and you have a contract stating that you get paid a weekly sum for washing the floor weekly, then you'd probably want to wash the floor again on Monday, even if it has been done just recently.  Or perhaps one of the children is having swimming at school every Tuesday, so sometime during Monday (with a hard due set to Tuesday early morning) a gym bag with swimwear and a fresh towel should be prepared for the child.
+* Specified intervals - say, the floor should be cleaned every week.  You usually do it every Monday, but one week everything is so hectic that you postpone it all until late Sunday evening.  It would be irrational to wash it again the next day.  And if you missed the due date with more than a week - then obviously the next recurrence is not "previous week".  (Except, one may argue that the status of previous week should be set to "CANCELLED")
+* Fixed-time.  If you actually get paid for washing the floor and you have a contract stating that you get paid a weekly sum for washing the floor weekly, then you'd probably want to wash the floor again on Monday, even if it has been done just recently.  Or perhaps one of the children is having swimming at school every Tuesday, so sometime during Monday (with a hard due set to Tuesday early morning) a gym bag with swimwear and a fresh towel should be prepared for the child.  Or the yearly income tax statement, should be delivered before a hard due date.
+
+I choose to interpret a RRULE with BY*-attributes set (like BYDAY=MO) as a recurring task with "fixed" due times, while a RRULE without BY*-attributes should be considered as a "interval"-style of recurring task.
 
 There can be only one status and one complete-date for a vtodo, no matter if it's recurring or not.
 
-Based on my interpretation of the standards, I've implemented logic in calendar-cli task completion code to duplicate the vtodo entry if it has an rrule; one vtodo ends up as completed, the other gets a new timestamp based on the rrule ("next after today".  An rrule may be set up both with fixed-time (as in "every Monday, at 10:00") and with specified intervals ("weekly"), so if you complete the task sunday evening, it will be due again Monday if it's a fixed-time rule and Sunday evening if it's with specified intervals).  The two rrules are linked togheter through the recurrance-id attribute. (perhaps this logic should be moved from calendar-cli to the caldav library).
+Based on my interpretation of the standards, possibly the correct way to mark once recurrence of a recurring task as complete, is to use the RECURRENCE-ID parameter and make several instances of the same UID.  However, based on my understanding of the RFC, the timestamps in a "recurrence set" is strictly defined by the RRULE and the original DTSTART.  This does probably fit well with the fixed-time recurrences (at least if one markes a missed recurrence with CANCELLED), but it does not fit particularly well with interval-based recurrences.
+
+I tried implementing some logic like this in calendar-cli, and it was working on DAViCal.  However, it was missing tests, and I realize that it's kind of broken.  I'm now moving this logic to the caldav layer.  I'm also creating a "safe" logic which will split the completed task into a completely separate task and editing/moving DTSTART/DUE on the recurring event.  This may be the more practical solution (perhaps combined with having a common parent for all the recurring tasks).
 
 There is no support for rrules outside the task completion code, so as for now the rrule has to be put in through another caldav client tool, through the --pdb option or through manually editing ical code.  I believe recurring tasks is an important functionality, so I will implement better support for this at some point.
 
