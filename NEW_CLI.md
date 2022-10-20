@@ -1,4 +1,4 @@
-I'm currently working on a cal.py aka kal that eventually will replace calendar-cli.py.  This is the long document with design thoughts, and it may not be completely in sync with what I'm actually implementing.  Eventually, read the shorter [USER_GUIDE](USER_GUIDE.md) for a more up-to-date and shorter document.
+I'm currently working on a cal.py aka kal that eventually will replace calendar-cli.py.  This is the long document with design thoughts, and it may not be completely in sync with what I'm actually implementing.  You may want to read the shorter [USER_GUIDE](USER_GUIDE.md) for a more up-to-date and shorter document.
 
 ## General thoughts
 
