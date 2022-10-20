@@ -76,7 +76,7 @@ sum_hours will sum the duration of all objects.  For tasks and events in the fut
 
 The `pin` subcommand will "pin" one or more todo-items to some specific time on the calendar.  Duration will be copied.  The tasks will be serialized.  If there are conflicting events in the same calendar, the tasks will be put after the conflicting events.  No checks will be done to ensure that the tasks ends up within ordinary working hours, outside the night hours or before the due date.  Or perhaps some sanity checks should be done ... it will be a lot of cleanup-work to be done if one accidentally forgets "-1" and adds some hundreds of items to the calendar ...
 
-```kal select --todo --categories=housework --smart-sort --limit=3 pin '2021-12-02 16:00'
+```kal select --todo --categories=housework --smart-sort --limit=3 pin '2021-12-02 16:00'```
 
 ### Time tracking
 

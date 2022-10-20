@@ -1,7 +1,5 @@
 #!/bin/bash
 
-## TODO: all references to calendar-cli should be replaced with references to kal.  Work in progress!
-
 set -e
 
 ########################################################################
@@ -204,8 +202,6 @@ kal select --todo --sort-key='{CATEGORIES.cats[0]:?zzz?}' --sort-key=-CLASS  --l
 
 echo "## Editing the task"
 kal select --todo --category scripttest edit --set-summary "editing" --add-category "scripttest2"
-
-## TODO: add tests for multiple sort keys
 
 echo "## Verifying that the edits got through"
 kal select --todo --category scripttest list
