@@ -1,3 +1,7 @@
+# On the "next level" calendar-cli - a full-featured tool for calendar management, project management and time tracking
+
+This document is dedicated to my rubber ducky - but if anyone else has the patience to read through it, feedback is appreciated.
+
 ## Tasks vs events vs journals
 
 In my paradigm, a task is a planned activity that should be done, but not at a specific time (but possibly it should be done within a specific time interval).  When it's done - or when it is deemed irrelevant to do it - it can be striken out from the list.  An event is something that should be done at a relatively well-defined time.  While you may come an hour early or late to the Saturday night party and still have a lot of fun - if you come at the wrong date, then there won't be a party.
@@ -22,16 +26,32 @@ Both events and tasks generally contain infomration about future plans, journals
 
 ## Standards as they are now:
 
-The RFC specifies three different kind of calendar resource object types, it's the VJOURNAL, VTODO and VEVENT.  From a technical point of view, the differences are mostly those:
+### Calendar resource object types
 
-* The VEVENT has a DTEND, the VTODO has a DUE, and the VJOURNAL ... has neither.
-* The VEVENT is generally expected to have a DTSTART.  The VJOURNAL is generally expected to have a DTSTART set to a date.  A VTODO need not have a DTSTART.
+The RFC specifies three different kind of calendar resource object types, it's the VJOURNAL, VTODO and VEVENT.  From a technical point of view, the differences are mostly in what timestamps the object holds.  The VEVENT has a DTEND, the VTODO has a DUE, and the VJOURNAL ... has neither.  The VEVENT is generally expected to have a DTSTART.  The VJOURNAL is generally expected to have a DTSTART set to a date.  A VTODO need not have a DTSTART.  There is also the STATE field that can have different values depending on the object type.  I think all other differences enforced by the RFC is minor.
 
 Calendaring systems usually have very different user interfaces for tasks and events (and journals are generally not used).  Generally, tasks can be "striked out", but they don't stick very well to the calendar.  None of the three types are well-suited for tracking the time spent working on a task or attending to a meeting.
 
-VJOURNAL entries on a calendar is meant exactly for meeting notes ... probably as well as recording things like who was really participating in an event, unfortunately not possible to track how much time they spend on it (A journal entry cannot have a duration or an end timestamp).
+VJOURNAL entries on a calendar is the correct place to store meeting notes ... probably as well as recording things like who was really participating in an event.  It can also be used for recording a diary or make other notes on what one has done during the day.
 
-Tasks may have a DTSTART and either a DUE or a DURATION; the latter two are interchangable, the standard defines that the DURATION is the difference between DTSTART and DUE.  The standard is a bit unclear on exactly what those timestamps are to be used for.  I assume the DUE is the due date where a task should be completed.  This may be a very hard due date (i.e. the task "packing the suitcase" obviously needs to be done before the plane departure).  It makes sense to let DURATION be the time estimate for the task, then DTSTART will be the latest possible start time if the task is to be completed before the DUE date.  Obviously, if one expects to spend half an hour packing the suitcase and one needs to rush out the door at 19:30, one ought to start packing the suit case long before 19:30.  This breaks with my usage up until now; I've used DTSTART as the earliest point of time I'm planning to consider to start working on the task (and sometimes this may also be a well-defined timestamp - the suitcase probably shouldn't be packed several days before departure).
+VEVENT and VTODO is generally optimized for keeping information about the future - while VJOURNAL is supposed to be used for keeping information about the past.  However, the RFC is not explicit on this, and I haven't heard of any implementations that denies one creating tasks/events with timestamps in the past nor journals with DTSTART in the future.
+
+### More on timestamps
+
+A VJOURNAL can only contain a DTSTART, and no DURATION or DTEND.  This makes it impossible to use the VJOURNAL to track how much time has been spent.  I think this is stupid - as written above, time tracking is something we would like to do at the calendar level, and since it's information on things that has already happened, VJOURNAL is the only logic place to put it.
+
+A VTODO may have a DTSTART and a DUE.  I think the DUE timestamp is relatively easy to define, it's the time you, your leader, your customer and/or your significant other and/or other relevant parties expects the task to be completed.  It may be a hard deadline, or it may be a "soft" target that may be pushed on later.  The DTSTART is however a bit more tricky, I can see the field being used for quite different purposes:
+
+* The earliest possible time one can start working with a task (or the earliest possible time one expects to be able to start working with it)
+* The time one is actually planning to start working with it
+* The latest possible time one can start working with it, and still be done before the due time.
+* The time one actually started working with the task
+
+As an example, consider a tax report to be filled out and sent to the authorities, the latest at the end of April.  Consider that one will have to pay fines if it is not delivered before midnight the night before 1st of May.  One cannot start with it before all the data one needs is available, perhaps 1st of April is the earliest one can start.  One may plan to work with during a specific Sunday in the middle of April.  If it takes three hours to complete the report, the very latest one can start is at 21:00 night before the 1st of May, but it would be very silly to actually start at that time.  And perhaps one actually got started with it at noon at the 25th of April.
+
+A VEVENT and a VTODO may take a DURATION, but it cannot be combined with DTEND or DUE.  While the RFC is not explicit on it, it is my understanding that DURATION and DTEND/DUE is interchangable - if DTSTART and DTEND/DUE is set, the DURATION is implicitly the difference between those two - an object with DTSTART and DURATION set is equivalent with an object with DTSTART and DTEND/DUE set.  For the rest of the document, DURATION is understood to be the difference between DTSTART and DTEND/DUE.  In my head, tasks have a DUE and a DURATION while the DTSTART is a bit more abstranct.  Hence, setting or changing the DURATION of a task may efficiently mean "setting the DTSTART" - and the definition of DTSTART depends on the definition of DURATION.  Is the DURATION the time estimate for completing the task?  Then DTSTART will have to be the very latest one can start with the task and still complete before the DUE.
+
+Other observations:
 
 * It is possible to specify that a task should be a recurring task, but there is no explicit support in the RFC of completing an occurrence.  In the existing version of calendar-cli, a new "historic" task instance is created and marked complete, while dtstart is bumped in the "open" task.  (there is an alternative interpretation of "recurring task", it could mean "let's work on project A every Tuesday after lunch, all until it's completed").
 
@@ -63,19 +83,27 @@ If one always ensures to "stick" tasks to the calendar, time tracking can be don
 
 A VJOURNAL entry is (the only entry) supposed to describe the past, and could be a good place to store such data.  Unfortunately VJOURNAL entries cannot have DURATION nor DTEND (and it's recommended to put a date rather than a timestamp into DTSTART).
 
-It is a great mess - the designers of the calendar standards absolutely didn't consider the need of tracking tim spent.
+It is a great mess - the designers of the calendar standards absolutely didn't consider the need of tracking time spent.
 
-My proposal is to let a VJOURNAL be a child of a VEVENT to mark that the VEVENT took place and that one participated in it.  If things went as planned, it's straight forward.  If things didn't go as planned, then ... either one may need to edit the VEVENT or create a separate VEVENT (which may be a child of the original VEVENT) containing the correct timestamps.  If it was a VTODO and it wasn't "stuck" to the calendar, then it's trivial to make an after-the-fact VEVENT (just be careful that no calendar invites are sent out).
+While working with code for completion of a reccurrence of a recurring tasks, I realized that we're actually storing information on *what has happened* when we're changing the status to "completed" and adding a timestamp for when it was completed.  For a recurring task we're also duplicating the information in the task.  Hence we can keep the original time information in the original recurring task but store actual time spent in the recurrence.  The time spent may *either* be stored in the DURATION or through the difference between DTSTART and COMPLETED timestamp.  To avoid any kind of confusion, I propose to set DUE and COMPLETED to the same timestamp, and let the DURATION indicate the time spent.  Non-recurring tasks may be hand-crafted into recurring tasks with COUNT set to one.  That does feel like a rather dirty workaround though.
 
-Overtime and billing information is so far considered site-specific and outside the scope.
+One idea may be to always make a VJOURNAL, a child of a VEVENT or VTODO, to mark either that the VEVENT took place and that one participated in it, or that one did spend time working on a task.  For a VEVENT, if things went as planned, it's straight forward - the DURATION of said event marks the time spent on it.  If things didn't go as planned, then ... either one may need to edit the VEVENT or create a separate VEVENT (which may be a child of the original VEVENT) containing the correct timestamps.  If it was a VTODO and it wasn't "stuck" to the calendar, then it's trivial to make an after-the-fact VEVENT (just be careful that no calendar invites are sent out).  For a VTODO one may hack up something by considering the difference between the journal DTSTART and the task COMPLETION timestamp to be the actual time worked on the task.  Or it's possible to track the time by retroactively "stick the task to the calendar", and let the VJOURNAL be a child of a VEVENT which is a child of the VTODO.
+
+So I haven't concluded yet on how it is best to do time tracking on tasks, but there are some options.  In any case, I think that consistently using a VJOURNAL entry to mark that one has actually participated in an event or spent time working on a task is a good idea.
+
+There is additional complexity that the time spent may be flagged as overtime, and that there may be billing information as well.  I'm considering it to be site-specific and outside the scope.  It may be possible to squeeze this information in somewhere, maybe in the CATEGORIES field, or maybe in some X-NONSTANDARD attributes.
 
 ### Striking out something from the calendar
 
-This sort of leaves us with two ways of "striking out" something.  There is the traditional way of marking the task as COMPLETED.  Now if the task is connected to a VEVENT, the calendar item should also be striken out.
+The considerations above sort of leaves us with two ways of "striking out" something.  There is the traditional way of marking the task as COMPLETED.  Now if the task is connected to a VEVENT, the calendar item should also be striken out.
 
 The second way is to make sure there is a VJOURNAL attached as a child of the VEVENT or a (grand)grandchild of the VTODO.
 
-Those two ways of striking out things have fundamentally different meanings.  The first is to mark that a task is done and closed and does not need to be revisited.  The second is to mark that work time was spent on the task or event.  One would typically want to use both kind of "strikes".  Only the first one if one is to mark that no significant work time was spent on the task (i.e. because the task has been cancelled, or because the work time spent has been accounted for somewhere else), and only the second one (and then create more events/journals later) if work time was spent but the task was not completed.
+Those two ways of striking out things have fundamentally different meanings - the first is to mark that a task is done and closed and does not need to be revisited, the second is to mark that work time was spent on the task or event.  This may be combined in different ways;
+
+* If one did some work and completed a tas, one would typically want to use both kind of "strikes".
+* Sometimes one may want to mark a task as "completed" or "cancelled" even if one hasn't spent time on it - maybe because it has become irrelevant or because it has already been done (by someone else, or the work has been "piggybacked" in another task, time consumption counted for in another project, etc)
+* Sometimes one has spent time on a task without completing it (maybe partly completed, maybe wasted some time on it before marking it as "cancelled", etc), then one would like to create the journal entry but without marking it as complete.
 
 ### Task management
 
