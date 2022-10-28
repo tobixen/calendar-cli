@@ -1,5 +1,5 @@
 metadata = {
-    "version": "0.14.0dev",
+    "version": "0.14.0.dev0",
     "author": "Tobias Brox",
     "author_short": "tobixen",
     "copyright": "Copyright 2013-2022, Tobias Brox and contributors",
@@ -9,5 +9,7 @@ metadata = {
     "author_email": "t-calendar-cli@tobixen.no",
     "status": "Development",
     "product": "calendar-cli",
-    "description": "high-level cli against caldav servers",
+    "name": "calendar-cli",
+    "description": "Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.",
+    "url": "https://github.com/tobixen/calendar-cli",
 }

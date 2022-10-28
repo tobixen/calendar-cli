@@ -5,16 +5,15 @@ import os
 
 from setuptools import setup, find_packages
 
-import metadata
+from metadata import metadata
+metadata_ = metadata.copy()
 
-metadata_ = {}
-for attribute in ('version', 'author', 'author_email', 'license'):
-    metadata_[attribute] = getattr(metadata, '__%s__' % attribute)
+for x in metadata:
+    if not x in ('author', 'version', 'license', 'maintainer', 'author_email',
+                 'status', 'name', 'description', 'url', 'description'):
+        metadata_.pop(x)
 
 setup(
-    name='calendar-cli',
-    description='Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.',
-    url='https://github.com/tobixen/calendar-cli',
     #packages=['',
     #          ],
     classifiers=[

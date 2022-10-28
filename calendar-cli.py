@@ -790,6 +790,11 @@ def main():
     """
     the main function does (almost) nothing but parsing command line parameters
     """
+#    sys.stderr.write("""
+#The calendar-cli command is slowly being deprecated in favor of kal
+#Check https://github.com/tobixen/calendar-cli/issues/88
+#""")
+            
     ## This boilerplate pattern is from
     ## http://stackoverflow.com/questions/3609852
     ## We want defaults for the command line options to be fetched from the config file

@@ -32,7 +32,7 @@ then
 	read foo
     fi
     ./tests_kal.sh
-    #./tests.sh
+    ./tests.sh
     if [ -n "$DEBUG" ]
     then
 	echo "press enter to take down test server"
