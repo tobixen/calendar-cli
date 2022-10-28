@@ -5,12 +5,11 @@ import os
 
 from setuptools import setup, find_packages
 
-import calendar_cli as my_script
+import metadata
 
-metadata = {}
+metadata_ = {}
 for attribute in ('version', 'author', 'author_email', 'license'):
-    if hasattr(my_script, '__%s__' % attribute):
-        metadata[attribute] = getattr(my_script, '__%s__' % attribute)
+    metadata_[attribute] = getattr(metadata, '__%s__' % attribute)
 
 setup(
     name='calendar-cli',
@@ -32,7 +31,7 @@ setup(
     py_modules=['cal'],
     install_requires=[
         'icalendar',
-        'caldav>=0.10.0dev',
+        'caldav>=0.10',
 #        'isodate',
         'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333 
         'tzlocal',
@@ -44,5 +43,5 @@ setup(
             'kal = cal:cli',
         ],
     },
-   **metadata
+   **metadata_
 )

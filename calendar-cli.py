@@ -38,6 +38,8 @@ import urllib3
 from getpass import getpass
 from six import PY3
 
+from metadata import metadata
+
 UTC = pytz.utc
 #UTC = zoneinfo.ZoneInfo('UTC')
 
@@ -59,19 +61,6 @@ try:
     unicode
 except NameError:
     unicode = str
-
-__version__ = "0.13.0"
-__author__ = "Tobias Brox"
-__author_short__ = "tobixen"
-__copyright__ = "Copyright 2013-2021, Tobias Brox and contributors"
-#__credits__ = []
-__license__ = "GPLv3+"
-__license_url__ = "http://www.gnu.org/licenses/gpl-3.0-standalone.html"
-__maintainer__ = "Tobias Brox"
-__author_email__ = "t-calendar-cli@tobixen.no"
-__status__ = "Development"
-__product__ = "calendar-cli"
-__description__ = "high-level cli against caldav servers"
 
 def _date(ts):
     """
@@ -372,7 +361,7 @@ def create_alarm(message, relative_timedelta):
 
 def calendar_add(caldav_conn, args):
     cal = Calendar()
-    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(language=args.language, **metadata))
     cal.add('version', '2.0')
     event = Event()
     ## read timestamps from arguments
@@ -443,7 +432,7 @@ def calendar_delete(caldav_conn, args):
 def journal_add(caldav_conn, args):
     ## TODO: copied from todo_add, should probably be consolidated
     cal = Calendar()
-    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(language=args.language, **metadata))
     cal.add('version', '2.0')
     journal = Journal()
     ## TODO: what does the cryptic comment here really mean, and why was the dtstamp commented out?  dtstamp is required according to the RFC.
@@ -467,7 +456,7 @@ def todo_add(caldav_conn, args):
     else:
         uid = uuid.uuid1()
     cal = Calendar()
-    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(author_short=__author_short__, product=__product__, language=args.language))
+    cal.add('prodid', '-//{author_short}//{product}//{language}'.format(language=args.language, **metadata))
     cal.add('version', '2.0')
     todo = Todo()
     todo.add('dtstamp', _now())
@@ -808,7 +797,7 @@ def main():
     # We make this parser with add_help=False so that
     # it doesn't parse -h and print help.
     conf_parser = argparse.ArgumentParser(
-        prog=__product__,
+        prog=metadata["product"],
         description=__doc__, # printed with -h/--help
         # Don't mess with format of description
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -822,7 +811,7 @@ def main():
     conf_parser.add_argument("--interactive-config",
                              help="Interactively ask for configuration", action="store_true")
     args, remaining_argv = conf_parser.parse_known_args()
-    conf_parser.add_argument("--version", action='version', version='%%(prog)s %s' % __version__)
+    conf_parser.add_argument("--version", action='version', version='%%(prog)s %s' % metadata["version"])
 
     config = {}
 
@@ -854,7 +843,7 @@ def main():
     # Don't suppress add_help here so it will handle -h
     parser = argparse.ArgumentParser(
         description=__doc__,
-        prog=__product__,
+        prog=metadata["product"],
         # Inherit options from config_parser
         parents=[conf_parser]
         )

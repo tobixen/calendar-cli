@@ -20,13 +20,15 @@ https://github.com/tobixen/calendar-cli/issues/88
 ## This file aims to be smaller than the old calendar-cli while
 ## offering more featuores.
 
-from calendar_cli import __version__
+from metadata import metadata
+__version__ = metadata["version"]
 
 import click
 import os
 import caldav
 #import isodate
 import dateutil
+import dateutil.parser
 import datetime
 import re
 from icalendar import prop
