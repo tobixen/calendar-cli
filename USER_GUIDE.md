@@ -1,6 +1,6 @@
 # User guide for calendar-cli v1.0
 
-This document was updated 2022-10-09.  The kal command is under heavy development, this document may not always be up-to-date.
+This document was updated 2022-10-28.  The kal command is under heavy development, this document may not always be up-to-date.
 
 The new command kal is under development.  It can already do nearly all the things calendar-cli can do.  In the upcoming release 1.0 the command name will be `kal`, with `calendar-cli` retained only for backward-compatibility.
 
