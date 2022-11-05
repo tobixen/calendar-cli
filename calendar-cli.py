@@ -38,7 +38,7 @@ import urllib3
 from getpass import getpass
 from six import PY3
 
-from metadata import metadata
+from calendar_cli.metadata import metadata
 __version__ = metadata["version"]
 
 UTC = pytz.utc
