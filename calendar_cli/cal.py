@@ -20,7 +20,7 @@ https://github.com/tobixen/calendar-cli/issues/88
 ## This file aims to be smaller than the old calendar-cli while
 ## offering more featuores.
 
-from metadata import metadata
+from calendar_cli.metadata import metadata
 __version__ = metadata["version"]
 
 import click
@@ -32,7 +32,7 @@ import dateutil.parser
 import datetime
 import re
 from icalendar import prop
-from lib.template import Template
+from calendar_cli.template import Template
 
 list_type = list
 

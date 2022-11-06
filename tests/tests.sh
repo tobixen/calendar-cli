@@ -72,7 +72,7 @@ echo "## Taking out the agenda for 2010-10-10, with uid"
 calendar_cli calendar agenda --from-time=2010-10-10 --agenda-days=1 --event-template='{dtstart} {uid}'
 echo $output | { grep -q $uid2 && echo "## OK: found the UID" ; } || error "didn't find the UID"
 
-echo "## Deleting events with uid $uid $uid1 $uid2"
+echo "## Deleting events with uid $uid $uid2 $uid3"
 calendar_cli calendar delete --event-uid=$uid
 calendar_cli calendar delete --event-uid=$uid2
 calendar_cli calendar delete --event-uid=$uid3

@@ -8,8 +8,8 @@ metadata = {
     "maintainer": "Tobias Brox",
     "author_email": "t-calendar-cli@tobixen.no",
     "status": "Development",
-    "product": "calendar-cli",
-    "name": "calendar-cli",
+    "product": "calendar_cli",
+    "name": "calendar_cli",
     "description": "Simple command-line CalDav client, for adding and browsing calendar items, todo list items, etc.",
     "url": "https://github.com/tobixen/calendar-cli",
 }
