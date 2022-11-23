@@ -4,4 +4,4 @@ test_calendar-cli.sh will attempt to set up a radicale server and a xandikos ser
 
 The actual tests are in tests.sh.  You'll have to run this one if you want to check compatibility with other calendar servers, but it requires either that the $calendar_cli environmental variable is set, or that some calendar server is configured in .config/calendar.conf.  If you choose to run the tests towards some old, existing calendar, then be aware that the test code may eventually delete some historic data from 2010.
 
-Probably we should add some standard python test code here that can be run through nose or tox, but after all this is a command line utility - hence I found it appropriate to start with functional tests written to be executed from through a shell.
+Probably we should add some standard python test code here that can be run through pytest and/or tox, but after all this is a command line utility - hence I found it appropriate to start with functional tests written to be executed from through a shell.

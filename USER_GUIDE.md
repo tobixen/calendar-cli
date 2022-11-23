@@ -1,8 +1,6 @@
 # User guide for calendar-cli v1.0
 
-This document was updated 2022-10-28.  The kal command is under heavy development, this document may not always be up-to-date.
-
-The new command kal is under development.  It can already do nearly all the things calendar-cli can do.  In the upcoming release 1.0 the command name will be `kal`, with `calendar-cli` retained only for backward-compatibility.
+The `kal` command is under heavy development, this document may not always be up-to-date.  As of 2022-11, `kal` can do nearly all the things the old command `calendar-cli` can do.  In the upcoming release 1.0 one is supposed to use `kal`, with `calendar-cli` being a deprecated legacy interface retained only for backward-compatibility.
 
 ## Command structure
 
@@ -119,3 +117,8 @@ The subcommand `print-uid` will print out an UID.  It's for convenience, the sam
 kal select --todo --uid=1234-5678-9abc delete
 kal select --todo --category computer-work --start=2022-04-04 --end=2022-05-05 edit --complete ## not supported yet
 kal select --todo --category computer-work --overdue edit --postpone=5d ## not supported yet
+
+## See also
+
+[NEW_CLI.md](NEW_CLI.md) is a longer, but possibly less up-to-date document containing some visions of the new `kal`-command.
+[NEXT_LEVEL.md](NEXT_LEVEL.md) describes some of my visions on what a good calendaring system should be capable of, and does an attempt on mapping this down to the icalendar standard.
