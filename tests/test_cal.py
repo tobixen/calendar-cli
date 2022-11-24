@@ -3,8 +3,8 @@ import sys
 sys.path.insert(0,'.')
 sys.path.insert(1,'..')
 from datetime import datetime, date
-from cal import parse_timespec
-from lib.template import Template
+from calendar_cli.cal import parse_timespec
+from calendar_cli.template import Template
 
 """calendar-cli is a command line utility, and it's an explicit design
 goal that it should contain minimal logic except for parsing and
@@ -17,7 +17,7 @@ goal to get complete code coverage through this unit test, though any
 the caldav library ought to be tested here.  """
 
 class TestTemplate:
-    def setup(self):
+    def setup_method(self):
         self.date = date(1990, 10, 10)
         
     def test_formatting_with_timespec(self):
