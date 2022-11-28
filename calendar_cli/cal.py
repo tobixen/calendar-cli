@@ -30,9 +30,11 @@ import caldav
 import dateutil
 import dateutil.parser
 import datetime
+import logging
 import re
-from icalendar import prop
+from icalendar import prop, Timezone
 from calendar_cli.template import Template
+from calendar_cli.config import interactive_config, config_section, read_config
 
 list_type = list
 
@@ -60,6 +62,14 @@ def parse_dt(input, return_type=None):
     guess if we should return a date or a datetime.
 
     """
+    if isinstance(input, datetime.datetime):
+        if return_type is datetime.date:
+            return input.date()
+        return input
+    if isinstance(input, datetime.date):
+        if return_type is datetime.datetime:
+            return datetime.datetime.combine(input, datetime.time(0,0))
+        return input
     ret = dateutil.parser.parse(input)
     if return_type is datetime.datetime:
         return ret
@@ -132,10 +142,46 @@ def parse_timespec(timespec):
 
     raise NotImplementedError("possibly a ISO time interval")
 
+def find_calendars(args):
+    def list_(obj):
+        """
+        For backward compatibility, a string rather than a list can be given as
+        calendar_url, calendar_name.  Make it into a list.
+        """
+        if not obj:
+            obj = []
+        if isinstance(obj, str) or isinstance(obj, bytes):
+            obj = [ obj ]
+        return obj
+
+    conn_params = {}
+    for k in args:
+        if k.startswith('caldav_') and args[k]:
+            key = k[7:]
+            if key == 'pass':
+                key = 'password'
+            if key == 'user':
+                key = 'username'
+            conn_params[key] = args[k]
+    calendars = []
+    if conn_params:
+        client = caldav.DAVClient(**conn_params)
+        principal = client.principal()
+        calendars = []
+        for calendar_url in list_(args.get('calendar_url')):
+            calendars.append(principal.calendar(cal_id=calendar_url))
+        for calendar_name in list_(args.get('calendar_name')):
+            calendars.append(principal.calendar(name=calendar_name))
+        if not calendars:
+            calendars = principal.calendars()
+    return calendars
+
+
 @click.group()
-## TODO
-#@click.option('-c', '--config-file', type=click.File("rb"), default=f"{os.environ['HOME']}/.config/calendar.conf")
-#@click.option('--config-section', default="default")
+## TODO: interactive config building
+## TODO: language and timezone
+@click.option('-c', '--config-file', default=f"{os.environ['HOME']}/.config/calendar.conf")
+@click.option('--config-section', default=["default"], multiple=True)
 @click.option('--caldav-url', help="Full URL to the caldav server", metavar='URL')
 @click.option('--caldav-username', '--caldav-user', help="Full URL to the caldav server", metavar='URL')
 @click.option('--caldav-password', '--caldav-pass', help="Full URL to the caldav server", metavar='URL')
@@ -157,20 +203,12 @@ def cli(ctx, **kwargs):
     ## TODO: logic to read the config file and edit kwargs from config file
     ## TODO: delayed communication with caldav server (i.e. if --help is given to subcommand)
     ## TODO: catch errors, present nice error messages
-    conn_params = {}
-    for k in kwargs:
-        if k.startswith('caldav_'):
-            conn_params[k[7:]] = kwargs[k]
-    client = caldav.DAVClient(**conn_params)
-    principal = client.principal()
-    calendars = []
-    for calendar_url in kwargs['calendar_url']:
-        calendars.append(principal.calendar(cal_id=calendar_url))
-    for calendar_name in kwargs['calendar_name']:
-        calendars.append(principal.calendar(name=calendar_name))
-    if not calendars:
-        calendars = principal.calendars()
-    ctx.obj['calendars'] = calendars
+    conns = []
+    ctx.obj['calendars'] = find_calendars(kwargs)
+    config = read_config(kwargs['config_file'])
+    if config:
+        for section in kwargs['config_section']:
+            ctx.obj['calendars'].extend(find_calendars(config_section(config, section)))
 
 @cli.command()
 @click.pass_context
@@ -178,7 +216,10 @@ def test(ctx):
     """
     Will test that we can connect to the caldav server and find the calendars.
     """
-    click.echo("Seems like everything is OK")
+    if not ctx.obj['calendars']:
+        _abort("No calendars found!")
+    else:
+        click.echo("Seems like everything is OK")
 
 def _set_attr_options_(func, verb):
     """
@@ -207,19 +248,25 @@ def _set_attr_options(verb=""):
 @click.option('--uid', multiple=True, help='select an object with a given uid (or select more object with given uids).  Overrides all other selection options')
 @click.option('--abort-on-missing-uid/--ignore-missing-uid', default=False, help='Abort if (one or more) uids are not found (default: silently ignore missing uids).  Only effective when used with --uid')
 @click.option('--todo/--notodo', default=None, help='select only todos (or no todos)')
-@click.option('--event/--noevent', default=None, help='select only todos (or no todos)')
+@click.option('--event/--noevent', default=None, help='select only events (or no events)')
 @click.option('--include-completed/--exclude-completed', default=False, help='select only todos (or no todos)')
 @_set_attr_options()
 @click.option('--start', help='do a time search, with this start timestamp')
 @click.option('--end', help='do a time search, with this end timestamp (or duration)')
 @click.option('--timespan', help='do a time search for this interval')
-@click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort', multiple=True)
+@click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort.  Special: "get_duration()" yields the duration or the distance between dtend and dtstart, or an empty timedelta', multiple=True)
 @click.option('--skip-parents/--include-parents', help="Skip parents if it's children is selected.  Useful for finding tasks that can be started if parent depends on child", default=False)
 @click.option('--skip-children/--include-children', help="Skip children if it's parent is selected.  Useful for getting an overview of the big picture if children are subtasks", default=False)
 @click.option('--limit', help='Number of objects to show', type=int)
 @click.option('--offset', help='SKip the first objects', type=int)
 @click.pass_context
-def select(ctx, all, uid, abort_on_missing_uid, sort_key, skip_parents, skip_children, limit, offset, **kwargs_):
+def select(*largs, **kwargs):
+    """
+    select/search/filter tasks/events, for listing/editing/deleting, etc
+    """
+    return _select(*largs, **kwargs)
+
+def _select(ctx, all=None, uid=[], abort_on_missing_uid=None, sort_key=[], skip_parents=None, skip_children=None, limit=None, offset=None, **kwargs_):
     """
     select/search/filter tasks/events, for listing/editing/deleting, etc
     """
@@ -263,34 +310,36 @@ def select(ctx, all, uid, abort_on_missing_uid, sort_key, skip_parents, skip_chi
     if uid:
         return
 
-    if kwargs_['start']:
+    if kwargs_.get('start'):
         kwargs['start'] = parse_dt(kwargs['start'])
-        if kwargs_['end']:
+        if kwargs_.get('end'):
             rx = re.match(r'\+((\d+(\.\d+)?[smhdwy])+)', kwargs['end'])
             if rx:
                 kwargs['end'] = parse_add_dur(kwargs['start'], rx.group(1))
             else:
                 kwargs['end'] = parse_dt(kwargs['end'])
-    elif kwargs_['timespan']:
+    elif kwargs_.get('timespan'):
         kwargs['start'], kwargs['end'] = parse_timespec(kwargs['timespan'])
 
     for attr in attr_txt_many:
-        if len(kwargs_[attr])>1:
+        if len(kwargs_.get(attr, []))>1:
             raise NotImplementedError(f"is it really needed to search for more than one {attr}?")
-        elif kwargs_[attr]:
+        elif kwargs_.get(attr):
             kwargs[attr] = kwargs[attr][0]
 
     ## TODO: special handling of parent and child! (and test for that!)
 
+    if 'start' in kwargs and 'end' in kwargs:
+        kwargs['expand'] = True
     for c in ctx.obj['calendars']:
         objs.extend(c.search(**kwargs))
 
     if skip_children or skip_parents:
         objs_by_uid = {}
         for obj in objs:
-            objs_by_uid[obj.icalendar_instance.subcomponents[0]['uid']] = obj
+            objs_by_uid[obj.icalendar_component['uid']] = obj
         for obj in objs:
-            rels = obj.icalendar_instance.subcomponents[0].get('RELATED-TO', [])
+            rels = obj.icalendar_component.get('RELATED-TO', [])
             rels = rels if isinstance(rels, list_type) else [ rels ]
             for rel in rels:
                 rel_uid = rel
@@ -312,9 +361,13 @@ def select(ctx, all, uid, abort_on_missing_uid, sort_key, skip_parents, skip_chi
             reverse = False
         ## if the key contains {}, it should be considered to be a template
         if '{' in skey:
-            fkey = lambda obj: Template(skey).format(**obj.icalendar_instance.subcomponents[0])
+            fkey = lambda obj: Template(skey).format(**obj.icalendar_component)
+        elif skey == 'get_duration()':
+            fkey = lambda obj: obj.get_duration()
+        elif skey in ('DTSTART', 'DTEND', 'DUE', 'DTSTAMP'):
+            fkey = lambda obj: getattr(obj.icalendar_component.get(skey), 'dt', datetime.datetime(1970,1,2)).strftime("%F%H%M%S")
         else:
-            fkey = lambda obj: obj.icalendar_instance.subcomponents[0][skey]
+            fkey = lambda obj: obj.icalendar_component.get(skey)
         ctx.obj['objs'].sort(key=fkey, reverse=reverse)
 
     ## OPTIMIZE TODO: this is also suboptimal, if ctx.obj is a very long list
@@ -331,6 +384,12 @@ def list(ctx, ics, template):
     """
     print out a list of tasks/events/journals
     """
+    return _list(ctx, ics, template)
+
+def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}"):
+    """
+    Actual implementation of list
+    """
     if ics:
         if not ctx.obj['objs']:
             return
@@ -342,12 +401,13 @@ def list(ctx, ics, template):
     template=Template(template)
     for obj in ctx.obj['objs']:
         for sub in obj.icalendar_instance.subcomponents:
-            click.echo(template.format(**sub))
+            if not isinstance(sub, Timezone):
+                click.echo(template.format(**sub))
 
 @select.command()
 @click.pass_context
 def print_uid(ctx):
-    click.echo(ctx.obj['objs'][0].icalendar_instance.subcomponents[0]['UID'])
+    click.echo(ctx.obj['objs'][0].icalendar_component['UID'])
 
 @select.command()
 @click.option('--multi-delete/--no-multi-delete', default=None, help="Delete multiple things without confirmation prompt")
@@ -371,6 +431,9 @@ def delete(ctx, multi_delete, **kwargs):
 @_set_attr_options(verb='set')
 @click.pass_context
 def edit(*largs, **kwargs):
+    """
+    Edits a task/event/journal
+    """
     return _edit(*largs, **kwargs)
 
 def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe', **kwargs):
@@ -381,7 +444,7 @@ def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe'
         complete_recurrence_mode = kwargs.pop('recurrence_mode')
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
-        ie = obj.icalendar_instance.subcomponents[0]
+        ie = obj.icalendar_component
         for arg in ctx.obj['set_args']:
             if arg in ('child', 'parent'):
                 obj.set_relation(arg, ctx.obj['set_args'][arg])
@@ -421,6 +484,19 @@ def calculate_panic_time(ctx, **kwargs):
 @click.pass_context
 def sum_hours(ctx, **kwargs):
     raise NotImplementedError()
+
+@cli.command()
+@click.pass_context
+def agenda(ctx):
+    """
+    Prints an agenda (alias for select --event --start=now --end=in 32 days --limit=30 list)
+
+    agenda is for convenience only and takes no options or parameters.
+    Use the select command for advanced usage.
+    """
+    start = datetime.datetime.now()
+    _select(ctx=ctx, start=start, end='+30d', limit=32, sort_key=['DTSTART', 'get_duration()'])
+    return _list(ctx)
 
 ## TODO: all combinations of --first-calendar, --no-first-calendar, --multi-add, --no-multi-add should be tested
 @cli.group()
