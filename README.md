@@ -144,12 +144,14 @@ The file may look like this:
 A configuration with multiple sections may look like this:
 
 ```json
-{ "default":
+{
+"default":
   { "caldav_url": "http://foo.bar.example.com/caldav/",
     "caldav_user": "luser",
     "caldav_pass": "insecure"
   },
-  "caldav_url": "http://foo.baz.example.com/caldav/",
+"baz":
+  { "caldav_url": "http://foo.baz.example.com/caldav/",
     "caldav_user": "luser2",
     "caldav_pass": "insecure2"
   }
@@ -166,7 +168,7 @@ Add a calendar item "testevent" at 2013-10-01:
 
     ./calendar-cli.py --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ calendar add 2013-10-01 testevent
 
-(assumes that `caldav-url`, `calldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
+(assumes that `caldav-url`, `caldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
 
 Objectives
 ----------
