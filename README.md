@@ -195,16 +195,16 @@ work-appointments:
   calendar_url: mypatients
 private-calendar:
   caldav_url: "https://ecloud.global/remote.php/dav/"
-  caldav_user: myhyde
+  caldav_user: mrhyde
   caldav_pass: hunter2
   calendar_name: goodgames
-sinuous-deeds:
+brothel-appointments
   inheritate private-calendar
   calendar_name: badgames
 work:
   contains: [ 'work-calendar', 'work-appointments' ]
 private:
-  contains: [ 'privat-calendar', 'sinous-deeds' ]
+  contains: [ 'privat-calendar', 'brothel-appointments' ]
 ```
 
 Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`

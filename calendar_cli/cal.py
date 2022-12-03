@@ -53,6 +53,8 @@ list_type = list
 ## TODO: maybe find those attributes through the icalendar library? icalendar.cal.singletons, icalendar.cal.multiple, etc
 attr_txt_one = ['location', 'description', 'geo', 'organizer', 'summary', 'class', 'rrule']
 attr_txt_many = ['category', 'comment', 'contact', 'resources', 'parent', 'child']
+attr_time = ['dtstamp', 'dtstart', 'due', 'dtend', 'duration']
+attr_int = ['priority']
 
 def parse_dt(input, return_type=None):
     """Parse a datetime or a date.
@@ -70,6 +72,9 @@ def parse_dt(input, return_type=None):
         if return_type is datetime.datetime:
             return datetime.datetime.combine(input, datetime.time(0,0))
         return input
+    ## dateutil.parser.parse does not recognize '+2 hours', like date does.
+    if input.startswith('+'):
+        return parse_add_dur(datetime.datetime.now(), input[1:])
     ret = dateutil.parser.parse(input)
     if return_type is datetime.datetime:
         return ret
@@ -254,36 +259,46 @@ def list_calendars(ctx):
         format_str= "%%-%ds %%s" % max_display_name
         click.echo_via_pager(output + "\n".join([format_str % x for x in calendar_info]) + "\n")
 
-def _set_attr_options_(func, verb):
+def _set_attr_options_(func, verb, desc=""):
     """
     decorator that will add options --set-category, --set-description etc
     """
     if verb:
-        verb1 = f"{verb}-"
+        if not desc:
+            desc = verb
+        verb = f"{verb}-"
     else:
-        verb1 = ""
-        verb = "Select by "
-    for foo in attr_txt_one:
-        func = click.option(f"--{verb1}{foo}", help=f"{verb} ical attribute {foo}")(func)
-    for foo in attr_txt_many:
-        func = click.option(f"--{verb1}{foo}", help=f"{verb} ical attribute {foo}", multiple=True)(func)
+        verb = ""
+    if verb == 'no-':
+        for foo in attr_txt_one + attr_txt_many + attr_time + attr_int:
+            func = click.option(f"--{verb}{foo}/--defined-{foo}", default=None, help=f"{desc} ical attribute {foo}")(func)
+    else:
+        if verb == 'set-':
+            attr__one = attr_txt_one + attr_time + attr_int
+        else:
+            attr__one = attr_txt_one
+        for foo in attr__one:
+            func = click.option(f"--{verb}{foo}", help=f"{desc} ical attribute {foo}")(func)
+        for foo in attr_txt_many:
+            func = click.option(f"--{verb}{foo}", help=f"{desc} ical attribute {foo}", multiple=True)(func)
     return func
 
 def _abort(message):
     click.echo(message)
     raise click.Abort(message)
 
-def _set_attr_options(verb=""):
-    return lambda func: _set_attr_options_(func,verb)
+def _set_attr_options(verb="", desc=""):
+    return lambda func: _set_attr_options_(func, verb, desc)
 
 @cli.group()
 @click.option('--all/--none', default=None, help='Select all (or none) of the objects.  Overrides all other selection options.')
 @click.option('--uid', multiple=True, help='select an object with a given uid (or select more object with given uids).  Overrides all other selection options')
 @click.option('--abort-on-missing-uid/--ignore-missing-uid', default=False, help='Abort if (one or more) uids are not found (default: silently ignore missing uids).  Only effective when used with --uid')
-@click.option('--todo/--notodo', default=None, help='select only todos (or no todos)')
-@click.option('--event/--noevent', default=None, help='select only events (or no events)')
+@click.option('--todo/--no-todo', default=None, help='select only todos (or no todos)')
+@click.option('--event/--no-event', default=None, help='select only events (or no events)')
 @click.option('--include-completed/--exclude-completed', default=False, help='select only todos (or no todos)')
-@_set_attr_options()
+@_set_attr_options(desc="select by")
+@_set_attr_options('no', desc="select objects without")
 @click.option('--start', help='do a time search, with this start timestamp')
 @click.option('--end', help='do a time search, with this end timestamp (or duration)')
 @click.option('--timespan', help='do a time search for this interval')
@@ -411,7 +426,7 @@ def _select(ctx, all=None, uid=[], abort_on_missing_uid=None, sort_key=[], skip_
 
 @select.command()
 @click.option('--ics/--no-ics', default=False, help="Output in ics format")
-@click.option('--template', default="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
+@click.option('--template', default="{DUE.dt:?{DTSTART.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
 @click.pass_context
 def list(ctx, ics, template):
     """
@@ -419,7 +434,7 @@ def list(ctx, ics, template):
     """
     return _list(ctx, ics, template)
 
-def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}"):
+def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}"):
     """
     Actual implementation of list
     """
@@ -432,10 +447,15 @@ def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?:%F %
         click.echo(icalendar.to_ical())
         return
     template=Template(template)
+    output = []
     for obj in ctx.obj['objs']:
+        if isinstance(obj, str):
+            output.append(obj)
+            continue
         for sub in obj.icalendar_instance.subcomponents:
             if not isinstance(sub, Timezone):
-                click.echo(template.format(**sub))
+                output.append(template.format(**sub))
+    click.echo_via_pager("\n".join(output))
 
 @select.command()
 @click.pass_context
@@ -458,6 +478,7 @@ def delete(ctx, multi_delete, **kwargs):
         obj.delete()
 
 @select.command()
+@click.option('--pdb/--no-pdb', default=None, help="Interactive edit through pdb (experts only)")
 @click.option('--add-category', default=None, help="Delete multiple things without confirmation prompt", multiple=True)
 @click.option('--complete/--uncomplete', default=None, help="Mark task(s) as completed")
 @click.option('--complete-recurrence-mode', default='safe', help="Completion of recurrent tasks, mode to use - can be 'safe', 'thisandfuture' or '' (see caldav library for details)")
@@ -478,6 +499,8 @@ def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe'
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
         ie = obj.icalendar_component
+        if kwargs.get('pdb'):
+            import pdb; pdb.set_trace()
         for arg in ctx.obj['set_args']:
             if arg in ('child', 'parent'):
                 obj.set_relation(arg, ctx.obj['set_args'][arg])
@@ -522,13 +545,17 @@ def sum_hours(ctx, **kwargs):
 @click.pass_context
 def agenda(ctx):
     """
-    Prints an agenda (alias for select --event --start=now --end=in 32 days --limit=30 list)
+    Prints an agenda (alias for select --event --start=now --end=in 32 days --limit=16 list)
+    plus a task list (alias for select --todo --sort '{DUE.dt:?{DTSTART.dt:?(0000)?}?%F %H:%M:%S}' --sort '{PRIORITY:?0}' --limit=16 list)
 
     agenda is for convenience only and takes no options or parameters.
     Use the select command for advanced usage.
     """
     start = datetime.datetime.now()
-    _select(ctx=ctx, start=start, end='+30d', limit=32, sort_key=['DTSTART', 'get_duration()'])
+    _select(ctx=ctx, start=start, event=True, end='+30d', limit=16, sort_key=['DTSTART', 'get_duration()'])
+    objs = ctx.obj['objs']
+    _select(ctx=ctx, start=start, todo=True, end='+30d', limit=16, sort_key=['{DUE.dt:?{DTSTART.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+    ctx.obj['objs'] = objs + ["======"] + ctx.obj['objs']
     return _list(ctx)
 
 ## TODO: all combinations of --first-calendar, --no-first-calendar, --multi-add, --no-multi-add should be tested
@@ -587,6 +614,12 @@ def _process_set_args(ctx, kwargs):
             ctx.obj['set_args']['categories'] = kwargs[x]
         elif x.startswith('set_'):
             ctx.obj['set_args'][x[4:]] = kwargs[x]
+    for arg in ctx.obj['set_args']:
+        if arg == 'duration':
+            raise NotImplementedError
+        if arg in attr_time:
+            ctx.obj['set_args'][arg] = parse_dt(ctx.obj['set_args'][arg])
+
     if 'summary' in kwargs:
         ctx.obj['set_args']['summary'] = ctx.obj['set_args'].get('summary', '') + kwargs['summary']
     if 'ical_fragment' in kwargs:
