@@ -127,7 +127,7 @@ The file TASK_MANAGEMENT.md contains some thoughts on how to organize tasks.
 Configuration file
 ------------------
 
-Configuration file is by default located in $HOME/.config/calendar.conf and should be in json syntax.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
+Configuration file is by default located in $HOME/.config/calendar.conf.  calendar-cli expects it to be in json syntax, kal also accepts yaml format.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
 
 (I considered a configuration file in .ini-format, having a "default"-section with default values for any global options, and optionally other sections for different CalDAV-servers.  Asking a bit around for recommendations on config file format as well as location, I was told that the .ini-format is not a standard, I'd be better off using a standard like yaml, json or xml.  Personally I like json a bit better than yaml - after consulting with a friend I ended up with json.  Location ... I think it's "cleaner" to keep it in ~/.config/, and I'd like any calendar application to be able to access the file, hence it got ~/.config/calendar.conf rather than ~/.calendar-cli.conf)
 
@@ -158,7 +158,54 @@ A configuration with multiple sections may look like this:
 }
 ```
 
-Optionally, in addition (or even instead) of "default", other "sections" can be created and selected through the --config-section option.  The rationale is to allow configuration for multiple CalDAV-servers, or multiple calendars on the same CalDAV-server to remain in the same configuration file.  Later versions will eventually be capable of copying events, or putting events into several calendars.
+Sections may also include calendar urls or ids, and sections may inherit other sections:
+
+```json
+{
+"default":
+  { "caldav_url": "http://foo.bar.example.com/caldav/",
+    "caldav_user": "luser",
+    "caldav_pass": "insecure"
+  },
+"baz":
+  { "caldav_url": "http://foo.baz.example.com/caldav/",
+    "caldav_user": "luser2",
+    "caldav_pass": "insecure2"
+  }
+},
+"bazimportant":
+  { "inherits": "baz",
+    "calendar_url": "important"
+  }
+```
+
+kal also accepts `calendar_name`, which should match with the display name.
+
+kal may operate at many calendars at one time, hence it's possible to make a section refer to multiple other sections, like this:
+
+```yaml
+---
+work-calendar:
+  caldav_url: "http://acme.example.com/caldav/"
+  caldav_user: drjekyll
+  caldav_pass: pencilin
+  calendar_url: mycalendar
+work-appointments:
+  inherits: work-calendar
+  calendar_url: mypatients
+private-calendar:
+  caldav_url: "https://ecloud.global/remote.php/dav/"
+  caldav_user: myhyde
+  caldav_pass: hunter2
+  calendar_name: goodgames
+sinuous-deeds:
+  inheritate private-calendar
+  calendar_name: badgames
+work:
+  contains: [ 'work-calendar', 'work-appointments' ]
+private:
+  contains: [ 'privat-calendar', 'sinous-deeds' ]
+```
 
 Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`
 

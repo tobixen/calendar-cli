@@ -34,7 +34,7 @@ import logging
 import re
 from icalendar import prop, Timezone
 from calendar_cli.template import Template
-from calendar_cli.config import interactive_config, config_section, read_config
+from calendar_cli.config import interactive_config, config_section, read_config, expand_config_section
 
 list_type = list
 
@@ -142,7 +142,7 @@ def parse_timespec(timespec):
 
     raise NotImplementedError("possibly a ISO time interval")
 
-def find_calendars(args):
+def find_calendars(args, raise_errors):
     def list_(obj):
         """
         For backward compatibility, a string rather than a list can be given as
@@ -153,6 +153,18 @@ def find_calendars(args):
         if isinstance(obj, str) or isinstance(obj, bytes):
             obj = [ obj ]
         return obj
+
+    def _try(meth, kwargs, errmsg):
+        try:
+            ret = meth(**kwargs)
+            assert(ret)
+            return ret
+        except:
+            logging.error("Problems fetching calendar information: %s - skipping" % errmsg)
+            if raise_errors:
+                raise
+            else:
+                return None
 
     conn_params = {}
     for k in args:
@@ -166,27 +178,37 @@ def find_calendars(args):
     calendars = []
     if conn_params:
         client = caldav.DAVClient(**conn_params)
-        principal = client.principal()
+        principal = _try(client.principal, {}, conn_params['url'])
+        if not principal:
+            return []
         calendars = []
+        tries = 0
         for calendar_url in list_(args.get('calendar_url')):
-            calendars.append(principal.calendar(cal_id=calendar_url))
+            calendar=principal.calendar(cal_id=calendar_url)
+            tries += 1
+            if _try(calendar.get_display_name, {}, calendar.url):
+                calendars.append(calendar)
         for calendar_name in list_(args.get('calendar_name')):
-            calendars.append(principal.calendar(name=calendar_name))
-        if not calendars:
-            calendars = principal.calendars()
-    return calendars
+            tries += 1
+            calendar = _try(principal.calendar, {'name': calendar_name}, '%s : calendar "%s"' % (conn_params['url'], calendar_name))
+            calendars.append(calendar)
+        if not calendars and tries == 0:
+            calendars = _try(principal.calendars, {}, "conn_params['url'] - all calendars")
+    return calendars or []
 
 
 @click.group()
 ## TODO: interactive config building
 ## TODO: language and timezone
 @click.option('-c', '--config-file', default=f"{os.environ['HOME']}/.config/calendar.conf")
+@click.option('--skip-config/--read-config', help="Skip reading the config file")
 @click.option('--config-section', default=["default"], multiple=True)
 @click.option('--caldav-url', help="Full URL to the caldav server", metavar='URL')
 @click.option('--caldav-username', '--caldav-user', help="Full URL to the caldav server", metavar='URL')
 @click.option('--caldav-password', '--caldav-pass', help="Full URL to the caldav server", metavar='URL')
 @click.option('--calendar-url', help="Calendar id, path or URL", metavar='cal', multiple=True)
 @click.option('--calendar-name', help="Calendar name", metavar='cal', multiple=True)
+@click.option('--raise-errors/--print-errors', help="Raise errors found on calendar discovery")
 @click.pass_context
 def cli(ctx, **kwargs):
     """
@@ -204,22 +226,33 @@ def cli(ctx, **kwargs):
     ## TODO: delayed communication with caldav server (i.e. if --help is given to subcommand)
     ## TODO: catch errors, present nice error messages
     conns = []
-    ctx.obj['calendars'] = find_calendars(kwargs)
-    config = read_config(kwargs['config_file'])
-    if config:
-        for section in kwargs['config_section']:
-            ctx.obj['calendars'].extend(find_calendars(config_section(config, section)))
+    ctx.obj['calendars'] = find_calendars(kwargs, kwargs['raise_errors'])
+    if not kwargs['skip_config']:
+        config = read_config(kwargs['config_file'])
+        if config:
+            for meta_section in kwargs['config_section']:
+                for section in expand_config_section(config, meta_section):
+                    ctx.obj['calendars'].extend(find_calendars(config_section(config, section), raise_errors=kwargs['raise_errors']))
 
 @cli.command()
 @click.pass_context
-def test(ctx):
+def interactive_config(ctx):
+    raise NotImplementedError()
+
+@cli.command()
+@click.pass_context
+def list_calendars(ctx):
     """
-    Will test that we can connect to the caldav server and find the calendars.
+    Will output all calendars found
     """
     if not ctx.obj['calendars']:
         _abort("No calendars found!")
     else:
-        click.echo("Seems like everything is OK")
+        output = "Accessible calendars found:\n"
+        calendar_info = [(x.get_display_name(), x.url) for x in ctx.obj['calendars']]
+        max_display_name = max([len(x[0]) for x in calendar_info])
+        format_str= "%%-%ds %%s" % max_display_name
+        click.echo_via_pager(output + "\n".join([format_str % x for x in calendar_info]) + "\n")
 
 def _set_attr_options_(func, verb):
     """

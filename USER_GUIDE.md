@@ -20,7 +20,7 @@ kal command subcommand --help
 
 ## Main commands
 
-* test - verify that it's possible to connect to the server
+* list-calendars - verify that it's possible to connect to the server(s) and show the calendar(s) selected
 * add - for adding things to the calendar(s)
 * select - for selecting, viewing, editing and deleting things from the calendar(s).
 
@@ -36,7 +36,33 @@ It's recommended to rather use a config file (though not yet supported as of 202
 * `--config-file`
 * `--config-section`
 
-The default (though not yet supported as of 2022-10-09) is to utilize the `default` section under `$HOME/.config/calendar.conf`
+The default is to utilize the `default` section under `$HOME/.config/calendar.conf`  Here is an example configuration file:
+
+```yaml
+---
+work-calendar:
+  caldav_url: "http://acme.example.com/caldav/"
+  caldav_user: drjekyll
+  caldav_pass: pencilin
+  calendar_url: mycalendar
+work-appointments:
+  inherits: work-calendar
+  calendar_url: mypatients
+private-calendar:
+  caldav_url: "https://ecloud.global/remote.php/dav/"
+  caldav_user: myhyde
+  caldav_pass: hunter2
+  calendar_name: goodgames
+sinuous-deeds:
+  inheritate private-calendar
+  calendar_name: badgames
+work:
+  contains: [ 'work-calendar', 'work-appointments' ]
+private:
+  contains: [ 'privat-calendar', 'sinous-deeds' ]
+```
+
+(TODO: the example above haven't been tested)
 
 Multiple config sections can be specified, which may be useful for selecting things from multiple calendars.
 

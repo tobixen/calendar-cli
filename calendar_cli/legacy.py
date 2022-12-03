@@ -11,7 +11,6 @@ Copyright (C) 2013-2022 Tobias Brox and other contributors.
 
 See https://www.gnu.org/licenses/gpl-3.0.en.html for license information.
 """
-
 import argparse
 import tzlocal
 ## we still need to use pytz, see https://github.com/collective/icalendar/issues/333
@@ -26,7 +25,7 @@ from datetime import time as time_
 import dateutil.parser
 from dateutil.rrule import rrulestr
 from icalendar import Calendar,Event,Todo,Journal,Alarm
-from calendar_cli.config import interactive_config, config_section
+from calendar_cli.config import interactive_config, config_section, read_config
 import vobject
 import caldav
 import uuid
