@@ -90,41 +90,41 @@ I tried implementing some logic like this in calendar-cli, and it was working on
 
 There is no support for rrules outside the task completion code, so as for now the rrule has to be put in through another caldav client tool, through the --pdb option or through manually editing ical code.  I believe recurring tasks is an important functionality, so I will implement better support for this at some point.
 
-dtstart vs due vs duration vs priority
---------------------------------------
+dtstart vs due vs duration
+--------------------------
 
-Everything below describes my workflow as of 2015.  I have reconsidered and I'm working on new workflow - see the document [NEXT_LEVEL.md](NEXT_LEVEL.md).  The short summary: DURATION should be the actual time estimate, DUE is when you'd like to be done with the task, DTSTART is the latest possible time you can start with the task if the DUE is to be held, PRIORITY should show how urgent it is to complete before DUE (or complete the task at all), and it will be needed with slightly new logic for sorting and listing tasks.  I'm also planning to follow up with linked VJOURNAL-entries for keeping tabs on (potentially billable) time spent on work, as well as the possibility to link VEVENT and VTODO (to allocate specific time for working with a task, or mark up that some TODO needs to be done before some event)
+I don't know what they were thinking of when they created the icalendar standard.
 
-As of 2015 my opinion was that dtstart is the earliest time you expect to start working with the vtodo, or maybe the earliest time it's possible to start.  Passing the dtstart doesn't mean you need to drop everything else and start working on the task immediately.  You'd want to postpone the dtstart just to unclutter the todo-list.
+An event may have a DTSTART and a DUE ... or alternatively, a DURATION instead of DUE.  I assume the intention is that a task with DTSTART and DURATION set is equivalent with a task with the smae DTSTART set, and a DUE set equal to DTSTART plus DURATION.  This makes a lot of sense for events, but for tasks?  Not so much!
 
-Due is the time/date when the task has to be completed, come hell or high water.  It should probably not be postponed.  Due dates should probably be set very far in the future if no specific due date is set.  You really don't want the list of tasks that are soon due or even overdue to be cluttered up with stuff that can be procrastinated even further.
+Ok, DUE is pretty straight forward - it's the time when the task should be done.  But what is DTSTART?  Say, some bureaucracy work needs to be done "this year" - DUE should obviously be set to 1st of January at 00:00.
 
-Different task list implementations may behave differently, most of them is probably only concerned with the due date.
+As of 2015 my opinion was that DTSTART is the earliest time you expect to start working with the task, or maybe the earliest time it's possible to start.  Say, we plan to sit down and do bureaucraziness the 15th of December.
 
-According to the RFC, either due or duration should be given, never both of them.  A dtstart and a duration should be considered as equivalent with a dtstart and a due date (where due = dtstart + duration).  I find that a bit sad, I'd like to use dtstart as the time I expect to start working with a task, duration as the time I expect to actually use on the task, and due as the date when the task really should be completed.  Calendar-cli does not support the duration field as of today.
+Passing DTSTART doesn't mean you need to drop everything else and start working on the task immediately.  My idea was to restrict the todo-list to tasks where the DTSTART was already passed ... and then one could postpone the dtstart just to unclutter the todo-list.  However, I think it is more desirable to use the DURATION field for estimations of how long time the task will take.  Now, this bureaucraziness may be estimated to three hours of work.  That means DTSTART should be set to 21:00 at New Years eve.  Now, that's just silly!  But yeah, the DTSTART has a meaning: that's the time you need to drop everything else if you didn't do the task yet.
 
-Sometimes one gets overwhelmed, maybe one gets a week or two behind the schedule due to external circumstances.  calendar-cli supports operations like "add one week to all tasks that haven't been done yet".  As of 2015 the default due date was one week in the future.  It has been changed to one year in the future.  Probably the best practice is to keep the due date unset unless the task has a hard due date.
+I have some more thoughts on project management in the other document, [NEXT_LEVEL](NEXT_LEVEL.md).
 
-It's also possible to set a priority field.
+Priority
+--------
 
-The default sorting is:
+The RFC defines priority as a number between 0 and 10.
 
-* overdue tasks at the very top.
-* tasks that have passed dtstart above tasks that haven't passed dtstart
-* within each group, sort by due-date
-* if equal due-date, sort by dtstart
-* if equal due-date and dtstart, sort by priority
+0 means the priority is undefined, 1-4 means the priority is "high", 5 that it's "medium high" and 6-10 means the priority is "low".
 
-My usage pattern so far:
+Should tasks be done in the order of their priority?  Probably not, as there is also the DUE-date to consider.  I do have some ideas on how to sort and organize tasks in the [NEXT_LEVEL](NEXT_LEVEL.md) document.  To follow the thoughts there, let priority be defined as such:
 
-* Skip using the priority field.
-* Try to handle or postpone or delete tasks that are overdue immediately, we shouldn't have any overdue tasks (oups, this didn't work out very well, as the default due date was 7 days in the future).
-* On a daily basis, go through all uncategorized tasks.  All tasks should have at least one category set.  I typically do this while sitting on the metro in the morning.
-* On a daily basis, look through all tasks that have passed the dtstart timestamp.  I'm considering when/how to do those tasks and (re)consider what is most urgent.  It's important to keep this list short (or it gets unwieldy, demotivating, etc), so I procrastinate everything I know I won't get done during the next few days.  I move the dtstart  timestamp to some future date - depending on my capacity, the importance of the tasks, etc, I add either some few days, weeks, months or years to it.
-* Whenever I think of something that needs to be done, I add it on the task list, immediately, from the telephone.
-* I've been using the timestamps to try to prioritize the tasks.
-* Whenever I'm at some specific location or doing some specific work, I'll filter the task list by category, often including tasks with future dtstart.
+1: The DUE timestamp MUST be met, come hell or high water.
+2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.
+3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.
+4: The deadline SHOULD NOT be pushed too much
+5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.
+6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.
+7-9: Low-priority task, it would be nice if the task gets done at all ... but the DUE is overly optimistic and expected to be pushed several times.
 
-I believe my approach of using timestamps rather than the priority field makes some sense; by looking through the "task list for this week" on a daily basis, and adding some weeks to those I know I won't be able to do anytime soon, the task list is always being circulated, there are no tasks that really gets forgotten.
+Recommendation: split ut tasks
+------------------------------
 
-Task lists tend to always grow, at some point it's important to realize ... "Those tasks are just not important enough ... I'll probably never get done with those tasks", and simply delete them.  I'm not so good at that, my alternative approach is to set a due-date and dtstart in the far future.  I remember back in 2005, 2008 was the year I was going to get things done.  Hm, didn't happen. :-)
+Tasks that takes more than some few hours ought to be split up into several subtasks.
+
+To increase the probability that a high-priority task is done before the DUE, it may also be smart to split it up into subtasks/dependencies with lower priority but due dates set according to when one is expecting to get done with them.

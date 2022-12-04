@@ -87,8 +87,21 @@ def parse_dt(input, return_type=None):
 
 def parse_add_dur(dt, dur):
     """
-    duration may be something on the format 1s (one second), 3m (three minutes, not months), 3.5h, 1y1w, etc
-    or a ISO8601 duration (TODO: not supported yet).  Return the dt plus duration
+    duration may be something like this:
+      * 1s (one second)
+      * 3m (three minutes, not months
+      * 3.5h
+      * 1y1w
+    
+    It may also be a ISO8601 duration
+
+    Returns the dt plus duration.
+
+    If no dt is given, return the duration.
+
+    TODO: months not supported yet
+    TODO: return of delta in years not supported yet
+    TODO: ISO8601 duration not supported yet
     """
     time_units = {
         's': 1, 'm': 60, 'h': 3600,
@@ -101,10 +114,13 @@ def parse_add_dur(dt, dur):
         u = rx.group(2)
         dur = rx.group(3)
         if u=='y':
-            dt = datetime.datetime.combine(datetime.date(dt.year+i, dt.month, dt.day), dt.time())
+            return datetime.datetime.combine(datetime.date(dt.year+i, dt.month, dt.day), dt.time())
         else:
-            dt = dt + datetime.timedelta(0, i*time_units[u])
-    return dt
+            dur = datetime.timedelta(0, i*time_units[u])
+            if dt:
+                return dt + dur
+            else:
+                return dur
    
 
 ## TODO ... (and should be moved somewhere else?)
@@ -241,7 +257,10 @@ def cli(ctx, **kwargs):
 
 @cli.command()
 @click.pass_context
-def interactive_config(ctx):
+def i_update_config(ctx):
+    """
+    Edit the config file interactively
+    """
     raise NotImplementedError()
 
 @cli.command()
@@ -271,7 +290,7 @@ def _set_attr_options_(func, verb, desc=""):
         verb = ""
     if verb == 'no-':
         for foo in attr_txt_one + attr_txt_many + attr_time + attr_int:
-            func = click.option(f"--{verb}{foo}/--defined-{foo}", default=None, help=f"{desc} ical attribute {foo}")(func)
+            func = click.option(f"--{verb}{foo}/--has-{foo}", default=None, help=f"{desc} ical attribute {foo}")(func)
     else:
         if verb == 'set-':
             attr__one = attr_txt_one + attr_time + attr_int
@@ -309,8 +328,18 @@ def _set_attr_options(verb="", desc=""):
 @click.option('--offset', help='SKip the first objects', type=int)
 @click.pass_context
 def select(*largs, **kwargs):
-    """
-    select/search/filter tasks/events, for listing/editing/deleting, etc
+    """Search command, allows listing, editing, etc
+
+    This command is intended to be used every time one is to
+    select/filter/search for one or more events/tasks/journals.  It
+    offers a simple templating language built on top of python
+    string.format for sorting and listing.  It offers several
+    subcommands for doing things on the objects found.
+
+    The command is powerful and complex, but may also be non-trivial
+    in usage - hence there are some convenience-commands built for
+    allowing the common use-cases to be done in easier ways (like
+    agenda and fix-tasks-interactive)
     """
     return _select(*largs, **kwargs)
 
@@ -424,17 +453,45 @@ def _select(ctx, all=None, uid=[], abort_on_missing_uid=None, sort_key=[], skip_
     if limit is not None:
         ctx.obj['objs'] = ctx.obj['objs'][0:limit]
 
+    ## some sanity checks
+    for obj in ctx.obj['objs']:
+        comp = obj.icalendar_component
+        dtstart = comp.get('dtstart')
+        dtend = comp.get('dtend') or comp.get('due')
+        if dtstart and dtend and dtstart.dt > dtend.dt:
+            logging.error(f"task with uuid {comp['uid']} as dtstart after dtend/due")
+
+@select.command()
+@click.pass_context
+def list_categories(ctx):
+    """
+    List all categories used in the selection
+    """
+    cats = _cats(ctx)
+    for c in cats:
+        click.echo(c)
+
+def _cats(ctx):
+    categories = set()
+    for obj in ctx.obj['objs']:
+        cats = obj.icalendar_component.get('categories')
+        if cats:
+            categories.update(cats.cats)
+    return categories
+
+list_type = list
+
 @select.command()
 @click.option('--ics/--no-ics', default=False, help="Output in ics format")
-@click.option('--template', default="{DUE.dt:?{DTSTART.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
+@click.option('--template', default="{DTSTART.dt:?{DUE.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}")
 @click.pass_context
 def list(ctx, ics, template):
     """
-    print out a list of tasks/events/journals
+    Print out a list of tasks/events/journals
     """
     return _list(ctx, ics, template)
 
-def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}"):
+def _list(ctx, ics=False, template="{DTSTART.dt:?{DUE.dt:?(date missing)?}?%F %H:%M:%S}: {SUMMARY:?{DESCRIPTION:?(no summary given)?}?}"):
     """
     Actual implementation of list
     """
@@ -460,6 +517,11 @@ def _list(ctx, ics=False, template="{DUE.dt:?{DTSTART.dt:?(date missing)?}?%F %H
 @select.command()
 @click.pass_context
 def print_uid(ctx):
+    """
+    Convenience command, prints UID of first item
+
+    This can also be achieved by using select with template and limit
+    """
     click.echo(ctx.obj['objs'][0].icalendar_component['UID'])
 
 @select.command()
@@ -467,7 +529,7 @@ def print_uid(ctx):
 @click.pass_context
 def delete(ctx, multi_delete, **kwargs):
     """
-    delete the selected item(s)
+    Delete the selected item(s)
     """
     objs = ctx.obj['objs']
     if multi_delete is None and len(objs)>1:
@@ -498,23 +560,30 @@ def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe'
         complete_recurrence_mode = kwargs.pop('recurrence_mode')
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
-        ie = obj.icalendar_component
+        component = obj.icalendar_component
         if kwargs.get('pdb'):
+            click.echo("icalendar component available as component")
+            click.echo("caldav object available as obj")
+            click.echo("do the necessary changes and press c to continue normal code execution")
+            click.echo("happy hacking")
             import pdb; pdb.set_trace()
         for arg in ctx.obj['set_args']:
             if arg in ('child', 'parent'):
                 obj.set_relation(arg, ctx.obj['set_args'][arg])
+            elif arg == 'duration':
+                duration = parse_add_dur(dt=None, dur=ctx.obj['set_args'][arg])
+                obj.set_duration(duration)
             else:
-                if arg in ie:
-                    ie.pop(arg)
-                ie.add(arg, ctx.obj['set_args'][arg])
+                if arg in component:
+                    component.pop(arg)
+                component.add(arg, ctx.obj['set_args'][arg])
         if add_category:
-            if 'categories' in ie:
-                cats = ie.pop('categories').cats
+            if 'categories' in component:
+                cats = component.pop('categories').cats
             else:
                 cats = []
             cats.extend(add_category)
-            ie.add('categories', cats)
+            component.add('categories', cats)
         if complete:
             obj.complete(handle_rrule=complete_recurrence_mode, rrule_mode=complete_recurrence_mode)
         elif complete is False:
@@ -527,7 +596,11 @@ def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe'
 @click.option('--recurrence-mode', default='safe', help="Completion of recurrent tasks, mode to use - can be 'safe', 'thisandfuture' or '' (see caldav library for details)")
 def complete(ctx, **kwargs):
     """
-    Mark tasks as completed (alias for edit --complete)
+    Convenience command, mark tasks as completed
+
+    The same result can be obtained by running this subcommand:
+
+      `edit --complete`
     """
     return _edit(ctx, complete=True, **kwargs)
 
@@ -543,18 +616,108 @@ def sum_hours(ctx, **kwargs):
 
 @cli.command()
 @click.pass_context
+def i_set_task_attribs(ctx):
+    """Interactively populate missing attributes to tasks
+
+    Convenience method for tobixen-style task management.  Assumes
+    that all tasks ought to have categories, a due date, a priority
+    and a duration (estimated minimum time to do the task) set and ask
+    for those if it's missing.
+
+    See also USER_GUIDE.md, TASK_MANAGEMENT.md and NEXT_LEVEL.md
+    """
+    ## Tasks missing a category
+    LIMIT = 16
+
+    def _set_something(something, help_text, default=None):
+        cond = {f"no_{something}": True}
+        if something == 'duration':
+            cond['no_dtstart'] = True
+        _select(ctx=ctx, todo=True, limit=LIMIT, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'], **cond)
+        objs = ctx.obj['objs']
+        if objs:
+            num = len(objs)
+            if num == LIMIT:
+                num = f"{LIMIT} or more"
+            click.echo(f"There are {num} tasks with no {something} set.")
+            if something == 'category':
+                _select(ctx=ctx, todo=True)
+                cats = list_type(_cats(ctx))
+                cats.sort()
+                click.echo("List of existing categories in use (if any):")
+                click.echo("\n".join(cats))
+            click.echo(f"For each task, {help_text}")
+            for obj in objs:
+                comp = obj.icalendar_component
+                summary = comp.get('summary') or comp.get('description') or comp.get('uid')
+                value = click.prompt(summary)
+                if not value and default:
+                    value = default
+                if something == 'category':
+                    comp.add('categories', value.split(','))
+                elif something == 'due':
+                    obj.set_due(parse_dt(value), move_dtstart=True)
+                elif something == 'duration':
+                    obj.set_duration(parse_add_dur(None, value), movable_attr='DTSTART')
+                else:
+                    comp.add(something, value)
+                obj.save()
+            click.echo()
+
+    ## Tasks missing categories
+    _set_something('category', "enter a comma-separated list of categories to be added")
+
+    ## Tasks missing a due date
+    _set_something('due', "enter the due date (default +2d)", default="+2d")
+
+    ## Tasks missing a priority date
+    message="""Enter the priority - a number between 0 and 9.
+
+The RFC says that 0 is undefined, 1 is highest and 9 is lowest.
+
+TASK_MANAGEMENT.md suggests the following:
+
+1: The DUE timestamp MUST be met, come hell or high water.
+2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.
+3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.
+4: The deadline SHOULD NOT be pushed too much
+5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.
+6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.
+7-9: Low-priority task, it would be nice if the task gets done at all ... but the DUE is overly optimistic and expected to be pushed several times.
+"""
+    
+    _set_something('priority', message, default="5")
+
+    ## Tasks missing a duration
+    message="""Enter the DURATION (i.e. 5h or 2d)
+
+TASK_MANAGEMENT.md suggests this to be the estimated efficient work time
+needed to complete the task.
+
+(According to the RFC, DURATION cannot be combined with DUE, meaning that we
+actually will be setting DTSTART and not DURATION)"""
+
+    _set_something('duration', message)
+
+@cli.command()
+@click.pass_context
 def agenda(ctx):
     """
-    Prints an agenda (alias for select --event --start=now --end=in 32 days --limit=16 list)
-    plus a task list (alias for select --todo --sort '{DUE.dt:?{DTSTART.dt:?(0000)?}?%F %H:%M:%S}' --sort '{PRIORITY:?0}' --limit=16 list)
+    Convenience command, prints an agenda
+
+    This command is slightly redundant, same results may be obtained by running those two commands in series:
+    
+      `select --event --start=now --end=in 32 days --limit=16 list`
+    
+      `select --todo --sort '{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}' --sort '{PRIORITY:?0}' --limit=16 list`
 
     agenda is for convenience only and takes no options or parameters.
-    Use the select command for advanced usage.
+    Use the select command for advanced usage.  See also USAGE.md.
     """
     start = datetime.datetime.now()
     _select(ctx=ctx, start=start, event=True, end='+30d', limit=16, sort_key=['DTSTART', 'get_duration()'])
     objs = ctx.obj['objs']
-    _select(ctx=ctx, start=start, todo=True, end='+30d', limit=16, sort_key=['{DUE.dt:?{DTSTART.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+    _select(ctx=ctx, start=start, todo=True, end='+30d', limit=16, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
     ctx.obj['objs'] = objs + ["======"] + ctx.obj['objs']
     return _list(ctx)
 
@@ -615,9 +778,7 @@ def _process_set_args(ctx, kwargs):
         elif x.startswith('set_'):
             ctx.obj['set_args'][x[4:]] = kwargs[x]
     for arg in ctx.obj['set_args']:
-        if arg == 'duration':
-            raise NotImplementedError
-        if arg in attr_time:
+        if arg in attr_time and arg != 'duration':
             ctx.obj['set_args'][arg] = parse_dt(ctx.obj['set_args'][arg])
 
     if 'summary' in kwargs:
