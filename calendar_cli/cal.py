@@ -56,6 +56,11 @@ attr_txt_many = ['category', 'comment', 'contact', 'resources', 'parent', 'child
 attr_time = ['dtstamp', 'dtstart', 'due', 'dtend', 'duration']
 attr_int = ['priority']
 
+def _ensure_ts(dt):
+    if isinstance(dt, datetime.datetime):
+        return dt
+    return datetime.datetime(dt.year, dt.month, dt.day)
+
 def parse_dt(input, return_type=None):
     """Parse a datetime or a date.
 
@@ -103,6 +108,8 @@ def parse_add_dur(dt, dur):
     TODO: return of delta in years not supported yet
     TODO: ISO8601 duration not supported yet
     """
+    if dt and not (isinstance(dt, datetime.date)):
+        dt = parse_dt(dt)
     time_units = {
         's': 1, 'm': 60, 'h': 3600,
         'd': 86400, 'w': 604800
@@ -257,14 +264,6 @@ def cli(ctx, **kwargs):
 
 @cli.command()
 @click.pass_context
-def i_update_config(ctx):
-    """
-    Edit the config file interactively
-    """
-    raise NotImplementedError()
-
-@cli.command()
-@click.pass_context
 def list_calendars(ctx):
     """
     Will output all calendars found
@@ -321,7 +320,7 @@ def _set_attr_options(verb="", desc=""):
 @click.option('--start', help='do a time search, with this start timestamp')
 @click.option('--end', help='do a time search, with this end timestamp (or duration)')
 @click.option('--timespan', help='do a time search for this interval')
-@click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort.  Special: "get_duration()" yields the duration or the distance between dtend and dtstart, or an empty timedelta', multiple=True)
+@click.option('--sort-key', help='use this attributes for sorting.  Templating can be used.  Prepend with - for reverse sort.  Special: "get_duration()" yields the duration or the distance between dtend and dtstart, or an empty timedelta', default=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}{PRIORITY:?0?}'],  multiple=True)
 @click.option('--skip-parents/--include-parents', help="Skip parents if it's children is selected.  Useful for finding tasks that can be started if parent depends on child", default=False)
 @click.option('--skip-children/--include-children', help="Skip children if it's parent is selected.  Useful for getting an overview of the big picture if children are subtasks", default=False)
 @click.option('--limit', help='Number of objects to show', type=int)
@@ -387,12 +386,13 @@ def _select(ctx, all=None, uid=[], abort_on_missing_uid=None, sort_key=[], skip_
     if uid:
         return
 
-    if kwargs_.get('start'):
-        kwargs['start'] = parse_dt(kwargs['start'])
+    if kwargs_.get('start') or kwargs_.get('end'):
+        if kwargs_.get('start'):
+            kwargs['start'] = parse_dt(kwargs['start'])
         if kwargs_.get('end'):
             rx = re.match(r'\+((\d+(\.\d+)?[smhdwy])+)', kwargs['end'])
             if rx:
-                kwargs['end'] = parse_add_dur(kwargs['start'], rx.group(1))
+                kwargs['end'] = parse_add_dur(kwargs.get('start', datetime.datetime.now()), rx.group(1))
             else:
                 kwargs['end'] = parse_dt(kwargs['end'])
     elif kwargs_.get('timespan'):
@@ -542,6 +542,8 @@ def delete(ctx, multi_delete, **kwargs):
 @select.command()
 @click.option('--pdb/--no-pdb', default=None, help="Interactive edit through pdb (experts only)")
 @click.option('--add-category', default=None, help="Delete multiple things without confirmation prompt", multiple=True)
+@click.option('--postpone', help="Add something to the DTSTART and DTEND/DUE")
+@click.option('--cancel/--uncancel', default=None, help="Mark task(s) as cancelled")
 @click.option('--complete/--uncomplete', default=None, help="Mark task(s) as completed")
 @click.option('--complete-recurrence-mode', default='safe', help="Completion of recurrent tasks, mode to use - can be 'safe', 'thisandfuture' or '' (see caldav library for details)")
 @_set_attr_options(verb='set')
@@ -552,7 +554,7 @@ def edit(*largs, **kwargs):
     """
     return _edit(*largs, **kwargs)
 
-def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe', **kwargs):
+def _edit(ctx, add_category=None, cancel=None, complete=None, complete_recurrence_mode='safe', postpone=None, **kwargs):
     """
     Edits a task/event/journal
     """
@@ -588,6 +590,14 @@ def _edit(ctx, add_category=None, complete=None, complete_recurrence_mode='safe'
             obj.complete(handle_rrule=complete_recurrence_mode, rrule_mode=complete_recurrence_mode)
         elif complete is False:
             obj.uncomplete()
+        if cancel:
+            component.status='CANCELLED'
+        elif cancel is False:
+            component.status='NEEDS-ACTION'
+        if postpone:
+            for attrib in ('DTSTART', 'DTEND', 'DUE'):
+                if component.get(attrib):
+                    component[attrib].dt = parse_add_dur(component[attrib].dt, postpone)
         obj.save()
 
 
@@ -605,121 +615,83 @@ def complete(ctx, **kwargs):
     return _edit(ctx, complete=True, **kwargs)
 
 @select.command()
+@click.option('--hours-per-day', help='how many hours per day you expect to be able to dedicate to those tasks/events', default=4)
+@click.option('--limit', help='break after finding this many "panic"-items', default=4096)
 @click.pass_context
-def calculate_panic_time(ctx, **kwargs):
-    raise NotImplementedError()
+def calculate_panic_time(ctx, hours_per_day, limit):
+    return _calculate_panic_time(ctx, hours_per_day, limit, output=True)
+
+def _calculate_panic_time(ctx, hours_per_day, limit, output=True):
+    """Check if we need to panic
+
+    Assuming we can spend a limited time per day on those tasks
+    (because one also needs to sleep and do other things that are not
+    included in the calendar, or maybe some tasks can only be done
+    while the sun is shining), all tasks/events are processed in order
+    (assumed to be ordered by DTSTART).  The algorithm is supposed to
+    find if there are tasks that cannot be accomplished before the
+    DUE.  In that case, one should either PANIC or move the DUE.
+
+    Eventually it will report the total amount of slack found (time we
+    can slack off and still catch all the deadlines) as well as the
+    minimum slack (how long one may snooze before starting working on
+    those tasks).
+
+    TODO: Only tasks supported so far.  It should also warn on
+    overlapping events and substract time spent on events.
+    """
+    tot_slack = None
+    min_slack = None
+    dur_multiplicator = 24/hours_per_day
+    possible_start = datetime.datetime.now()
+    panic_objs_found = []
+    for obj in ctx.obj['objs']:
+        if len(panic_objs_found) >= limit:
+            break
+        if not isinstance(obj, caldav.Todo):
+            raise NotImplementedError("Should do calculations on time spent on events and ignore journals ... TODO")
+        else:
+            ## TODO: tasks with recurrence sets should be considered ...
+            ## ... at the other hand, default completion mode in the caldav
+            ## library is "safe", meaning that there shouldn't be recurrence sets
+            comp = obj.icalendar_component
+            duration = obj.get_duration()
+            due = obj.get_due()
+            if due:
+                long_dur = duration*dur_multiplicator
+                good_start = due - long_dur
+                slack = _ensure_ts(good_start) - possible_start
+                if slack <= datetime.timedelta(0):
+                    task = comp.get('summary') or comp.get('description') or comp.get('uid')
+                    dtstart = comp.get('dtstart')
+                    priority = comp.get('priority', 0)
+                    if output:
+                        click.echo(f"PANIC: task {task} needs attention!")
+                        click.echo(f"  possible start: {possible_start:%F %H:%M:%S}")
+                        click.echo(f"  safe start:     {good_start:%F %H:%M:%S}")
+                        click.echo(f"  dtstart:        {dtstart.dt:%F %H:%M:%S}")
+                        click.echo(f"  due:            {due:%F %H:%M:%S}")
+                        click.echo(f"  priority:       {priority}")
+                    panic_objs_found.append(obj)
+                if tot_slack is None:
+                    tot_slack = slack
+                    min_slack = slack
+                else:
+                    tot_slack = slack
+                    min_slack = min(min_slack, tot_slack)
+                    possible_start += long_dur
+    panic_time = datetime.datetime.now() + min_slack
+    if output:
+        click.echo(f"Total slack found: {tot_slack}")
+        click.echo(f"Minimum slack found: {min_slack}")
+        click.echo(f"Panic time: {panic_time:%F %H:%M:%S}")
+    else:
+        return (panic_objs_found, min_slack, tot_slack, panic_time)
 
 @select.command()
 @click.pass_context
 def sum_hours(ctx, **kwargs):
     raise NotImplementedError()
-
-@cli.command()
-@click.pass_context
-def i_set_task_attribs(ctx):
-    """Interactively populate missing attributes to tasks
-
-    Convenience method for tobixen-style task management.  Assumes
-    that all tasks ought to have categories, a due date, a priority
-    and a duration (estimated minimum time to do the task) set and ask
-    for those if it's missing.
-
-    See also USER_GUIDE.md, TASK_MANAGEMENT.md and NEXT_LEVEL.md
-    """
-    ## Tasks missing a category
-    LIMIT = 16
-
-    def _set_something(something, help_text, default=None):
-        cond = {f"no_{something}": True}
-        if something == 'duration':
-            cond['no_dtstart'] = True
-        _select(ctx=ctx, todo=True, limit=LIMIT, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'], **cond)
-        objs = ctx.obj['objs']
-        if objs:
-            num = len(objs)
-            if num == LIMIT:
-                num = f"{LIMIT} or more"
-            click.echo(f"There are {num} tasks with no {something} set.")
-            if something == 'category':
-                _select(ctx=ctx, todo=True)
-                cats = list_type(_cats(ctx))
-                cats.sort()
-                click.echo("List of existing categories in use (if any):")
-                click.echo("\n".join(cats))
-            click.echo(f"For each task, {help_text}")
-            for obj in objs:
-                comp = obj.icalendar_component
-                summary = comp.get('summary') or comp.get('description') or comp.get('uid')
-                value = click.prompt(summary)
-                if not value and default:
-                    value = default
-                if something == 'category':
-                    comp.add('categories', value.split(','))
-                elif something == 'due':
-                    obj.set_due(parse_dt(value), move_dtstart=True)
-                elif something == 'duration':
-                    obj.set_duration(parse_add_dur(None, value), movable_attr='DTSTART')
-                else:
-                    comp.add(something, value)
-                obj.save()
-            click.echo()
-
-    ## Tasks missing categories
-    _set_something('category', "enter a comma-separated list of categories to be added")
-
-    ## Tasks missing a due date
-    _set_something('due', "enter the due date (default +2d)", default="+2d")
-
-    ## Tasks missing a priority date
-    message="""Enter the priority - a number between 0 and 9.
-
-The RFC says that 0 is undefined, 1 is highest and 9 is lowest.
-
-TASK_MANAGEMENT.md suggests the following:
-
-1: The DUE timestamp MUST be met, come hell or high water.
-2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.
-3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.
-4: The deadline SHOULD NOT be pushed too much
-5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.
-6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.
-7-9: Low-priority task, it would be nice if the task gets done at all ... but the DUE is overly optimistic and expected to be pushed several times.
-"""
-    
-    _set_something('priority', message, default="5")
-
-    ## Tasks missing a duration
-    message="""Enter the DURATION (i.e. 5h or 2d)
-
-TASK_MANAGEMENT.md suggests this to be the estimated efficient work time
-needed to complete the task.
-
-(According to the RFC, DURATION cannot be combined with DUE, meaning that we
-actually will be setting DTSTART and not DURATION)"""
-
-    _set_something('duration', message)
-
-@cli.command()
-@click.pass_context
-def agenda(ctx):
-    """
-    Convenience command, prints an agenda
-
-    This command is slightly redundant, same results may be obtained by running those two commands in series:
-    
-      `select --event --start=now --end=in 32 days --limit=16 list`
-    
-      `select --todo --sort '{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}' --sort '{PRIORITY:?0}' --limit=16 list`
-
-    agenda is for convenience only and takes no options or parameters.
-    Use the select command for advanced usage.  See also USAGE.md.
-    """
-    start = datetime.datetime.now()
-    _select(ctx=ctx, start=start, event=True, end='+30d', limit=16, sort_key=['DTSTART', 'get_duration()'])
-    objs = ctx.obj['objs']
-    _select(ctx=ctx, start=start, todo=True, end='+30d', limit=16, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
-    ctx.obj['objs'] = objs + ["======"] + ctx.obj['objs']
-    return _list(ctx)
 
 ## TODO: all combinations of --first-calendar, --no-first-calendar, --multi-add, --no-multi-add should be tested
 @cli.group()
@@ -799,6 +771,8 @@ def todo(ctx, **kwargs):
     kal add todo "fix all known bugs in calendar-cli"
     kal add todo --set-due=2050-12-10 "release calendar-cli version 42.0.0"
     """
+    if not 'status' in kwargs:
+        kwargs['status'] = 'NEEDS-ACTION'
     kwargs['summary'] = " ".join(kwargs['summary'])
     _process_set_args(ctx, kwargs)
     if not ctx.obj['set_args']['summary']:
@@ -834,6 +808,233 @@ def event(ctx, timespec, **kwargs):
 def journal():
     click.echo("soon you should be able to add journal entries to your calendar")
     raise NotImplementedError("foo")
+
+## CONVENIENCE COMMANDS
+
+@cli.command()
+@click.pass_context
+def agenda(ctx):
+    """
+    Convenience command, prints an agenda
+
+    This command is slightly redundant, same results may be obtained by running those two commands in series:
+    
+      `select --event --start=now --end=in 32 days --limit=16 list`
+    
+      `select --todo --sort '{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}' --sort '{PRIORITY:?0}' --limit=16 list`
+
+    agenda is for convenience only and takes no options or parameters.
+    Use the select command for advanced usage.  See also USAGE.md.
+    """
+    start = datetime.datetime.now()
+    _select(ctx=ctx, start=start, event=True, end='+30d', limit=16, sort_key=['DTSTART', 'get_duration()'])
+    objs = ctx.obj['objs']
+    _select(ctx=ctx, start=start, todo=True, end='+30d', limit=16, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+    ctx.obj['objs'] = objs + ["======"] + ctx.obj['objs']
+    return _list(ctx)
+
+@cli.group()
+@click.pass_context
+def interactive(ctx):
+    """
+    Interactive convenience commands
+
+    Various convenience methods that will prompt for input
+    """
+
+@interactive.command()
+@click.option('--limit', help='If more than limit overdue tasks are found, probably we should do a mass procrastination rather than going through one and one task', default=8)
+@click.pass_context
+def check_overdue(ctx, limit):
+    _select(ctx=ctx, todo=True, end='+5m', limit=limit, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+    objs = ctx.obj['objs']
+    #if len(objs) == limit and objs[-1].get('dtstart') ... TODO
+        #click.confirm(f"You seem to have at least {limit} due or overdue tasks.  Possibly you would be better off with the dismiss-panic subcommand.  Do you want to continue?", abort=True)
+    for obj in objs:
+        comp = obj.icalendar_component
+        summary = comp.get('summary') or comp.get('description') or comp.get('uid')
+        dtstart = comp.get('DTSTART')
+        due = obj.get_due()
+        if not dtstart or not due:
+            click.echo(f"task without dtstart or due found, please run set-task-attribs subcommand.  Ignoring {summary}")
+            continue
+        dtstart = dtstart.dt
+        ## TODO: client side filtering in case the server returns too much - should be moved to the caldav library
+        if dtstart.strftime("%F%H%M%S") > datetime.datetime.now().strftime("%F%H%M%S"):
+            continue
+        click.echo(f"{dtstart:%F %H:%M:%S} - {due:%F %H:%M:%S}: {summary}")
+        input = click.prompt("postpone <n>d / ignore / complete / cancel ?", default='ignore')
+        if input == 'ignore':
+            continue
+        elif input.startswith('postpone'):
+            obj.set_due(parse_add_dur(due, input.split(' ')[1]), move_dtstart=True)
+        elif input == 'complete':
+            obj.complete(handle_rrule=True)
+        elif input == 'cancel':
+            comp['STATUS'] = 'CANCELLED'
+        else:
+            click.echo(f"unknown instruction '{input}' - ignoring")
+            continue
+        obj.save()
+
+@interactive.command()
+@click.option('--hours-per-day', help='how many hours per day you expect to be able to dedicate to those tasks/events', default=4)
+@click.pass_context
+def dismiss_panic(ctx, hours_per_day):
+    """Checks workload, procrastinates tasks
+
+    Search for panic points, checks if they can be solved by
+    procrastinating tasks, comes up with suggestions
+    """
+    return _dismiss_panic(ctx, hours_per_day)
+    
+def _dismiss_panic(ctx, hours_per_day):
+    ## TODO: fetch both events and tasks
+    _select(ctx=ctx, todo=True, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}{PRIORITY:?0?}'])
+    objs = ctx.obj['objs']
+    get_dtstart = lambda x: _ensure_ts((x.icalendar_component.get('dtstart') or x.icalendar_component.get('due')).dt)
+    (panic_objs, min_slack, tot_slack, panic_time) = _calculate_panic_time(ctx=ctx, output=False, hours_per_day=hours_per_day, limit=1)
+
+    if not panic_objs:
+        click.echo("No need to panic :-)")
+        return
+    
+    first_objs = [ x for x in objs if get_dtstart(x) <= get_dtstart(panic_objs[0]) ]
+    lowest_pri = max( [ x.icalendar_component.get('priority', 0) for x in first_objs ] )
+    if lowest_pri == 0:
+        _abort("Please assign priority to all your tasks")
+    first_low_pri_tasks = [ x for x in first_objs if x.icalendar_component.get('priority', 0) == lowest_pri ]
+    other_low_pri_tasks = [ x for x in objs if x.icalendar_component.get('priority', 0) >= lowest_pri and get_dtstart(x) > get_dtstart(panic_objs[0]) ]
+
+    click.echo(f"Lowest-priority conflicting tasks (priority={lowest_pri}):")
+    for obj in first_low_pri_tasks:
+        component = obj.icalendar_component
+        summary = component.get('summary') or component.get('description') or component.get('uid')
+        due = obj.get_due()
+        dtstart = component.get('dtstart') or component.get('due')
+        dtstart = dtstart.dt
+        click.echo(f"Last possible start: {dtstart:%F %H:%M:%S} - Due: {due:%F %H:%M:%S}: {summary}")
+
+    if lowest_pri == 1:
+        _abort("PANIC!  Those are all high-priority tasks and cannot be postponed!")
+
+    if lowest_pri == 2:
+        _abort("PANIC!  Those tasks cannot be postponed.  Maybe you want to cancel some of them?  (interactive cancelling not supported yet)")
+
+    procrastination_time = -min_slack/len(first_low_pri_tasks)
+    if procrastination_time.days:
+        procrastination_time = f"{procrastination_time.days+1}d"
+    else:
+        procrastination_time = f"{procrastination_time.seconds//3600+1}h"
+    procrastination_time = click.prompt(f"Push the due-date with ...", default=procrastination_time)
+    ptime = parse_add_dur(None, procrastination_time)
+    for x in first_low_pri_tasks:
+        x.set_due(x.get_due() + ptime, move_dtstart=True)
+        x.save()
+
+    if other_low_pri_tasks:
+        click.echo(f"There are {len(other_low_pri_tasks)} later pri>={lowest_pri} tasks which probably should be postponed")
+        procrastination_time = click.prompt(f"Push the due-date for those with ...", default=procrastination_time)
+        ptime = parse_add_dur(None, procrastination_time)
+        for x in other_low_pri_tasks:
+            x.set_due(x.get_due() + ptime, move_dtstart=True)
+            x.save()
+    return _dismiss_panic(ctx, hours_per_day)
+
+@interactive.command()
+@click.pass_context
+def update_config(ctx):
+    """
+    Edit the config file interactively
+    """
+    raise NotImplementedError()
+
+@interactive.command()
+@click.pass_context
+def set_task_attribs(ctx):
+    """Interactively populate missing attributes to tasks
+
+    Convenience method for tobixen-style task management.  Assumes
+    that all tasks ought to have categories, a due date, a priority
+    and a duration (estimated minimum time to do the task) set and ask
+    for those if it's missing.
+
+    See also USER_GUIDE.md, TASK_MANAGEMENT.md and NEXT_LEVEL.md
+    """
+    ## Tasks missing a category
+    LIMIT = 16
+
+    def _set_something(something, help_text, default=None):
+        cond = {f"no_{something}": True}
+        something_ = 'categories' if something == 'category' else something
+        if something == 'duration':
+            something_ = 'dtstart'
+            cond['no_dtstart'] = True
+        _select(ctx=ctx, todo=True, limit=LIMIT, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'], **cond)
+        ## TODO: client-side filtering due to calendar servers that don't support the RFC properly
+        ## "Incompatibility workarounds" should be moved to the caldav library
+        objs = [x for x in ctx.obj['objs'] if not x.icalendar_component.get(something_)]
+        if objs:
+            num = len(objs)
+            if num == LIMIT:
+                num = f"{LIMIT} or more"
+            click.echo(f"There are {num} tasks with no {something} set.")
+            if something == 'category':
+                _select(ctx=ctx, todo=True)
+                cats = list_type(_cats(ctx))
+                cats.sort()
+                click.echo("List of existing categories in use (if any):")
+                click.echo("\n".join(cats))
+            click.echo(f"For each task, {help_text}")
+            for obj in objs:
+                comp = obj.icalendar_component
+                summary = comp.get('summary') or comp.get('description') or comp.get('uid')
+                value = click.prompt(summary, default=default)
+                if something == 'category':
+                    comp.add(something_, value.split(','))
+                elif something == 'due':
+                    obj.set_due(parse_dt(value, datetime.datetime), move_dtstart=True)
+                elif something == 'duration':
+                    obj.set_duration(parse_add_dur(None, value), movable_attr='DTSTART')
+                else:
+                    comp.add(something_, value)
+                obj.save()
+            click.echo()
+
+    ## Tasks missing categories
+    _set_something('category', "enter a comma-separated list of categories to be added")
+
+    ## Tasks missing a due date
+    _set_something('due', "enter the due date (default +2d)", default="+2d")
+
+    ## Tasks missing a priority date
+    message="""Enter the priority - a number between 0 and 9.
+
+The RFC says that 0 is undefined, 1 is highest and 9 is lowest.
+
+TASK_MANAGEMENT.md suggests the following:
+
+1: The DUE timestamp MUST be met, come hell or high water.
+2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.
+3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.
+4: The deadline SHOULD NOT be pushed too much
+5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.
+6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.
+7-9: Low-priority task, it would be nice if the task gets done at all ... but the DUE is overly optimistic and expected to be pushed several times.
+"""
+    
+    _set_something('priority', message, default="5")
+
+    ## Tasks missing a duration
+    message="""Enter the DURATION (i.e. 5h or 2d)
+
+TASK_MANAGEMENT.md suggests this to be the estimated efficient work time
+needed to complete the task.
+
+(According to the RFC, DURATION cannot be combined with DUE, meaning that we
+actually will be setting DTSTART and not DURATION)"""
+
+    _set_something('duration', message)
 
 if __name__ == '__main__':
     cli()

@@ -28,9 +28,9 @@ kal command subcommand --help
 
 Those commands are made mostly for making `kal` more convenient to use.  Many of the commands are optimized for the work flows of the primary author.  I may eventually decide to "hide" the more obscure commands from the `--help` overview.  (TODO: figure out if subcommands can be grouped in the help printed by click)
 
-* fix_tasks_interactive - go through all tasks that are missing categories, due date, priority, duration (technically, DTSTART) and ask interactively for values.
+* interactive set-task-attribs - go through all tasks that are missing categories, due date, priority, duration (technically, DTSTART) and ask interactively for values.
+* interactive update-config - (TODO: NOT IMPLEMENTED YET).  This one is not used by the primary author and is probably under-tested.  Its primary intention is to make it easy for others to use the tool.
 * agenda - list up some of the upcoming events plus some of the upcoming tasks
-* interactive_config - (TODO: NOT IMPLEMENTED YET).  This one is not used by the primary author and is probably under-tested.  Its primary intention is to make it easy for others to use the tool.
 
 ## Global options
 
