@@ -115,7 +115,7 @@ def parse_add_dur(dt, dur):
         'd': 86400, 'w': 604800
     }
     while dur:
-        rx = re.match(r'(\d+(?:\.\d+)?)([smhdw])(.*)', dur)
+        rx = re.match(r'(-?\d+(?:\.\d+)?)([smhdw])(.*)', dur)
         assert rx
         i = float(rx.group(1))
         u = rx.group(2)
@@ -619,9 +619,6 @@ def complete(ctx, **kwargs):
 @click.option('--limit', help='break after finding this many "panic"-items', default=4096)
 @click.pass_context
 def calculate_panic_time(ctx, hours_per_day, limit):
-    return _calculate_panic_time(ctx, hours_per_day, limit, output=True)
-
-def _calculate_panic_time(ctx, hours_per_day, limit, output=True):
     """Check if we need to panic
 
     Assuming we can spend a limited time per day on those tasks
@@ -640,6 +637,13 @@ def _calculate_panic_time(ctx, hours_per_day, limit, output=True):
     TODO: Only tasks supported so far.  It should also warn on
     overlapping events and substract time spent on events.
     """
+    return _calculate_panic_time(ctx, hours_per_day, limit, output=True)
+
+## TODO: this should probably be moved somewhere else, as it's "extra
+## functionality".  The scope for this package (and particularly for
+## this file) is merely to provide a command-line interface, logic
+## ought to go somewhere else.
+def _calculate_panic_time(ctx, hours_per_day, limit, output=True):
     tot_slack = None
     min_slack = None
     dur_multiplicator = 24/hours_per_day
@@ -649,7 +653,7 @@ def _calculate_panic_time(ctx, hours_per_day, limit, output=True):
         if len(panic_objs_found) >= limit:
             break
         if not isinstance(obj, caldav.Todo):
-            raise NotImplementedError("Should do calculations on time spent on events and ignore journals ... TODO")
+            raise NotImplementedError("Only tasks supported as for now.  In the future, we ought to do calculations on time spent on events and ignore journals ... TODO")
         else:
             ## TODO: tasks with recurrence sets should be considered ...
             ## ... at the other hand, default completion mode in the caldav
@@ -763,6 +767,9 @@ def _process_set_args(ctx, kwargs):
 @_set_attr_options(verb='set')
 @click.pass_context
 def todo(ctx, **kwargs):
+    return _add_todo(ctx, **kwargs)
+
+def _add_todo(ctx, **kwargs):
     """
     Creates a new task with given SUMMARY
 
@@ -779,7 +786,7 @@ def todo(ctx, **kwargs):
         _abort("denying to add a TODO with no summary given")
         return
     for cal in ctx.obj['calendars']:
-        todo = cal.save_todo(ical=ctx.obj['ical_fragment'], **ctx.obj['set_args'], no_overwrite=True)
+        todo = cal.save_todo(ical=ctx.obj.get('ical_fragment', ""), **ctx.obj['set_args'], no_overwrite=True)
         click.echo(f"uid={todo.id}")
 
 @add.command()
@@ -836,10 +843,16 @@ def agenda(ctx):
 @cli.group()
 @click.pass_context
 def interactive(ctx):
-    """
-    Interactive convenience commands
+    """Interactive convenience commands
 
-    Various convenience methods that will prompt for input
+    Various workflow procedures that will prompt the user for input.
+
+    Disclaimer: This is quite experimental stuff.  The maintainer is
+    experimenting with his own task list and testing out daily
+    procedures, hence it's also quite optimized towards whatever
+    work-flows that seems to work out for the maintainer of the
+    calendar-cli.  Things are changed rapidly without warnings and the
+    interactive stuff is not covered by any test code whatsoever.
     """
 
 @interactive.command()
@@ -950,6 +963,52 @@ def update_config(ctx):
     raise NotImplementedError()
 
 @interactive.command()
+@click.option('--threshold', help='tasks with a higher estimate than this should be split into subtasks', default='4h')
+@click.option('--max-lookahead', help='ignore tasks further in the future than this', default='30d')
+@click.option('--limit-lookahead', help='only consider the first x tasks', default=32)
+@click.pass_context
+def split_huge_tasks(ctx, threshold, max_lookahead, limit_lookahead):
+    """
+    finds tasks in the upcoming future that have a too big estimate and suggests to split it into subtasks
+    """
+    _select(ctx=ctx, todo=True, end=f"+{max_lookahead}", limit=limit_lookahead, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+    objs = ctx.obj['objs']
+    threshold = parse_add_dur(None, threshold)
+    for obj in objs:
+        if obj.get_duration() > threshold:
+            interactive_split_task(ctx, obj)
+
+def relationships(obj):
+    if obj.icalendar_component.get('RELATED-TO'):
+        import pdb; pdb.set_trace()
+    else:
+        return []
+
+def interactive_split_task(ctx, obj):
+    comp = obj.icalendar_component
+    summary = comp.get('summary') or comp.get('description') or comp.get('uid')
+    estimate = obj.get_duration()
+    click.echo(f"{summary}: estimate is {estimate}, which is too big.")
+    click.echo("Relationships:\n" + "\n".join(relationships(obj)))
+    if click.confirm("Do you want to fork out some subtasks?"):
+        cnt = 1
+        default = f"Plan how to do {summary}"
+        while True:
+            summary = click.prompt("Name for the subtask", default=default)
+            import pdb; pdb.set_trace()
+            default=""
+            if not summary:
+                break
+            cnt += 1
+            _add_todo(ctx, summary=[summary], set_parent=[comp['uid']])
+        new_estimate_suggestion = f"{estimate.total_seconds()//3600//cnt+1}h"
+        new_estimate = click.prompt("what is the remaining estimate for the parent task?", default=new_estimate_suggestion)
+        obj.set_duration(parse_add_dur(None, new_estimate), movable_attr='dtstart')
+        postpone = click.prompt("Should we postpone the parent task?", default='0h')
+        obj.set_due(parse_add_dur(comp['DUE'].dt, postpone), move_dtstart=True)
+        obj.save()
+
+@interactive.command()
 @click.pass_context
 def set_task_attribs(ctx):
     """Interactively populate missing attributes to tasks
@@ -986,10 +1045,15 @@ def set_task_attribs(ctx):
                 click.echo("List of existing categories in use (if any):")
                 click.echo("\n".join(cats))
             click.echo(f"For each task, {help_text}")
+            click.echo(f'(or enter "completed!" with bang but without quotes if the task is already done)')
             for obj in objs:
                 comp = obj.icalendar_component
                 summary = comp.get('summary') or comp.get('description') or comp.get('uid')
                 value = click.prompt(summary, default=default)
+                if value == 'completed!':
+                    obj.complete()
+                    obj.save()
+                    continue
                 if something == 'category':
                     comp.add(something_, value.split(','))
                 elif something == 'due':
