@@ -115,7 +115,7 @@ def parse_add_dur(dt, dur):
         'd': 86400, 'w': 604800
     }
     while dur:
-        rx = re.match(r'(-?\d+(?:\.\d+)?)([smhdw])(.*)', dur)
+        rx = re.match(r'([+-]?\d+(?:\.\d+)?)([smhdw])(.*)', dur)
         assert rx
         i = float(rx.group(1))
         u = rx.group(2)
@@ -389,7 +389,7 @@ def _select(ctx, all=None, uid=[], abort_on_missing_uid=None, sort_key=[], skip_
     if kwargs_.get('start') or kwargs_.get('end'):
         if kwargs_.get('start'):
             kwargs['start'] = parse_dt(kwargs['start'])
-        if kwargs_.get('end'):
+        if kwargs_.get('end') and not isinstance(kwargs_.get('end'), datetime.date):
             rx = re.match(r'\+((\d+(\.\d+)?[smhdwy])+)', kwargs['end'])
             if rx:
                 kwargs['end'] = parse_add_dur(kwargs.get('start', datetime.datetime.now()), rx.group(1))
@@ -562,9 +562,9 @@ def _edit(ctx, add_category=None, cancel=None, complete=None, complete_recurrenc
         complete_recurrence_mode = kwargs.pop('recurrence_mode')
     _process_set_args(ctx, kwargs)
     for obj in ctx.obj['objs']:
-        component = obj.icalendar_component
+        comp = obj.icalendar_component
         if kwargs.get('pdb'):
-            click.echo("icalendar component available as component")
+            click.echo("icalendar component available as comp")
             click.echo("caldav object available as obj")
             click.echo("do the necessary changes and press c to continue normal code execution")
             click.echo("happy hacking")
@@ -576,28 +576,28 @@ def _edit(ctx, add_category=None, cancel=None, complete=None, complete_recurrenc
                 duration = parse_add_dur(dt=None, dur=ctx.obj['set_args'][arg])
                 obj.set_duration(duration)
             else:
-                if arg in component:
-                    component.pop(arg)
-                component.add(arg, ctx.obj['set_args'][arg])
+                if arg in comp:
+                    comp.pop(arg)
+                comp.add(arg, ctx.obj['set_args'][arg])
         if add_category:
-            if 'categories' in component:
-                cats = component.pop('categories').cats
+            if 'categories' in comp:
+                cats = comp.pop('categories').cats
             else:
                 cats = []
             cats.extend(add_category)
-            component.add('categories', cats)
+            comp.add('categories', cats)
         if complete:
             obj.complete(handle_rrule=complete_recurrence_mode, rrule_mode=complete_recurrence_mode)
         elif complete is False:
             obj.uncomplete()
         if cancel:
-            component.status='CANCELLED'
+            comp.status='CANCELLED'
         elif cancel is False:
-            component.status='NEEDS-ACTION'
+            comp.status='NEEDS-ACTION'
         if postpone:
             for attrib in ('DTSTART', 'DTEND', 'DUE'):
-                if component.get(attrib):
-                    component[attrib].dt = parse_add_dur(component[attrib].dt, postpone)
+                if comp.get(attrib):
+                    comp[attrib].dt = parse_add_dur(comp[attrib].dt, postpone)
         obj.save()
 
 
@@ -855,36 +855,51 @@ def interactive(ctx):
     interactive stuff is not covered by any test code whatsoever.
     """
 
+
 @interactive.command()
 @click.option('--limit', help='If more than limit overdue tasks are found, probably we should do a mass procrastination rather than going through one and one task', default=8)
+@click.option('--lookahead', help='Look-ahead time - check tasks that needs to be completed in the near future', default='+12h')
 @click.pass_context
-def check_overdue(ctx, limit):
-    _select(ctx=ctx, todo=True, end='+5m', limit=limit, sort_key=['{DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}', '{PRIORITY:?0?}'])
+def check_due(ctx, limit, lookahead):
+    """
+    Go through overdue or near-future-due tasks, one by one, and deal with them
+    """
+    end_ = parse_add_dur(datetime.datetime.now(), lookahead)
+    _select(ctx=ctx, todo=True, end=end_, limit=limit, sort_key=['{PRIORITY:?0?} {DTSTART.dt:?{DUE.dt:?(0000)?}?%F %H:%M:%S}'])
     objs = ctx.obj['objs']
-    #if len(objs) == limit and objs[-1].get('dtstart') ... TODO
-        #click.confirm(f"You seem to have at least {limit} due or overdue tasks.  Possibly you would be better off with the dismiss-panic subcommand.  Do you want to continue?", abort=True)
     for obj in objs:
         comp = obj.icalendar_component
-        summary = comp.get('summary') or comp.get('description') or comp.get('uid')
+        summary = comp.get('SUMMARY') or comp.get('DESCRIPTION') or comp.get('UID')
         dtstart = comp.get('DTSTART')
+        pri = comp.get('PRIORITY', 0)
         due = obj.get_due()
         if not dtstart or not due:
             click.echo(f"task without dtstart or due found, please run set-task-attribs subcommand.  Ignoring {summary}")
             continue
         dtstart = dtstart.dt
-        ## TODO: client side filtering in case the server returns too much - should be moved to the caldav library
-        if dtstart.strftime("%F%H%M%S") > datetime.datetime.now().strftime("%F%H%M%S"):
+        ## client side filtering in case the server returns too much
+        ## TODO: should be moved to the caldav library
+        ## TODO: consider the limit ... we may risk that nothing comes up due to the limit above
+        if dtstart.strftime("%F%H%M") > end_.strftime("%F%H%M"):
             continue
-        click.echo(f"{dtstart:%F %H:%M:%S} - {due:%F %H:%M:%S}: {summary}")
-        input = click.prompt("postpone <n>d / ignore / complete / cancel ?", default='ignore')
+        click.echo(f"pri={pri} {dtstart:%F %H:%M:%S} - {due:%F %H:%M:%S}: {summary}")
+        input = click.prompt("postpone <n>d / ignore / complete / split / cancel / pdb?", default='ignore')
         if input == 'ignore':
             continue
+        elif input == 'split':
+            interactive_split_task(obj, ctx)
         elif input.startswith('postpone'):
             obj.set_due(parse_add_dur(due, input.split(' ')[1]), move_dtstart=True)
         elif input == 'complete':
             obj.complete(handle_rrule=True)
         elif input == 'cancel':
             comp['STATUS'] = 'CANCELLED'
+        elif input == 'pdb':
+            click.echo("icalendar component available as comp")
+            click.echo("caldav object available as obj")
+            click.echo("do the necessary changes and press c to continue normal code execution")
+            click.echo("happy hacking")
+            import pdb; pdb.set_trace()
         else:
             click.echo(f"unknown instruction '{input}' - ignoring")
             continue
