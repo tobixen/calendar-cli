@@ -736,7 +736,7 @@ def ical(ctx, ical_data, ical_file):
         ical = ical.replace('\nEND:', f"{ctx.obj['ical_fragment']}\nEND:")
     for c in ctx.obj['calendars']:
         ## TODO: this may not be an event - should make a Calendar.save_object method
-        c.save_event(ical)
+        c.save_event(ical_data)
 
 def _process_set_args(ctx, kwargs):
     ctx.obj['set_args'] = {}
