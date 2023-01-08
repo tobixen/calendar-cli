@@ -3,6 +3,8 @@ calendar-cli
 
 Simple command-line CalDav client, making it possible to add calendar events, browse an agenda and doing task management towards a caldav server.
 
+THIS IS THE LEGACY VERSION.  I got a bit unhappy with the project (particularly the quite different user interfaces when handling events vs handling tasks), so rather than making version 1.0, I decided to recreate it from scratch.  Please visit https://github.com/tobixen/kal for the new version (though be aware that it still has some sharp edges).
+
 Other tools
 -----------
 

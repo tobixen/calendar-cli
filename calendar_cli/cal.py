@@ -887,7 +887,7 @@ def check_due(ctx, limit, lookahead):
         if input == 'ignore':
             continue
         elif input == 'split':
-            interactive_split_task(obj, ctx)
+            interactive_split_task(ctx, obj)
         elif input.startswith('postpone'):
             obj.set_due(parse_add_dur(due, input.split(' ')[1]), move_dtstart=True)
         elif input == 'complete':
@@ -1010,7 +1010,6 @@ def interactive_split_task(ctx, obj):
         default = f"Plan how to do {summary}"
         while True:
             summary = click.prompt("Name for the subtask", default=default)
-            import pdb; pdb.set_trace()
             default=""
             if not summary:
                 break
