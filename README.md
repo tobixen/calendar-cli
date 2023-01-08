@@ -47,7 +47,7 @@ Rationale
 
 GUIs and Web-UIs are nice for some purposes, but I really find the command line unbeatable when it comes to:
 
-* Minor stuff that are repeated often.  Writing something like "todo add make a calendar-cli system" or "calendar add 'tomorrow 15:40+2h' doctor appointment" is (for me) faster than navigating into some web calendar interface and add an item there.
+* Minor stuff that is repeated often.  Writing something like "todo add make a calendar-cli system" or "calendar add 'tomorrow 15:40+2h' doctor appointment" is (for me) faster than navigating into some web calendar interface and add an item there.
 * Things that are outside the scope of the UI.  Here is one of many tasks I'd like to do: "go through the work calendar, find all new calendar events that are outside office hours, check up with the personal calendar if there are potential conflicts, add some information at the personal calendar if appropriate", and vice versa - it has to be handled very manually if doing it through any normal calendar application as far as I know, but if having some simple CLI or python library I could easily make some interactive script that would help me doing the operation above.
 
 When I started writing calendar-cli, all I could find was cadaver and the CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation, and there are things that simply cannot be done through those tools.
@@ -124,8 +124,8 @@ With the todo-command, there are quite some options available (i.e. --categories
 
 The file TASK_MANAGEMENT.md contains some thoughts on how to organize tasks.
 
-Configuration file
-------------------
+Configuration file - calendar-cli
+---------------------------------
 
 Configuration file is by default located in $HOME/.config/calendar.conf.  calendar-cli expects it to be in json syntax, kal also accepts yaml format.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
 
@@ -179,6 +179,9 @@ Sections may also include calendar urls or ids, and sections may inherit other s
   }
 ```
 
+Configuration file - kal
+------------------------
+
 kal also accepts `calendar_name`, which should match with the display name.
 
 kal may operate at many calendars at one time, hence it's possible to make a section refer to multiple other sections, like this:
@@ -198,13 +201,13 @@ private-calendar:
   caldav_user: mrhyde
   caldav_pass: hunter2
   calendar_name: goodgames
-brothel-appointments
-  inheritate private-calendar
+brothel-appointments:
+  inherits: private-calendar
   calendar_name: badgames
 work:
   contains: [ 'work-calendar', 'work-appointments' ]
 private:
-  contains: [ 'privat-calendar', 'brothel-appointments' ]
+  contains: [ 'private-calendar', 'brothel-appointments' ]
 ```
 
 Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`
