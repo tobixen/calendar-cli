@@ -124,12 +124,14 @@ With the todo-command, there are quite some options available (i.e. --categories
 
 The file TASK_MANAGEMENT.md contains some thoughts on how to organize tasks.
 
-Configuration file - calendar-cli
----------------------------------
+Configuration file
+------------------
 
-Configuration file is by default located in $HOME/.config/calendar.conf.  calendar-cli expects it to be in json syntax, kal also accepts yaml format.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
+Configuration file is by default located in $HOME/.config/calendar.conf.  calendar-cli expects it to be in json syntax, while kal supports both json and yaml.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
 
-(I considered a configuration file in .ini-format, having a "default"-section with default values for any global options, and optionally other sections for different CalDAV-servers.  Asking a bit around for recommendations on config file format as well as location, I was told that the .ini-format is not a standard, I'd be better off using a standard like yaml, json or xml.  Personally I like json a bit better than yaml - after consulting with a friend I ended up with json.  Location ... I think it's "cleaner" to keep it in ~/.config/, and I'd like any calendar application to be able to access the file, hence it got ~/.config/calendar.conf rather than ~/.calendar-cli.conf)
+(I considered .ini, but I was told that it's actually not a standard.  I'd like any calendar application to be able to access the file, hence calendar.conf and not calendar-cli.conf)
+
+### calendar-cli
 
 The file may look like this:
 
@@ -179,12 +181,17 @@ Sections may also include calendar urls or ids, and sections may inherit other s
   }
 ```
 
-Configuration file - kal
-------------------------
+### kal
 
-kal also accepts `calendar_name`, which should match with the display name.
+Anything that goes for calendar-cli will work for kal as well, but there are three improvements in kal:
 
-kal may operate at many calendars at one time, hence it's possible to make a section refer to multiple other sections, like this:
+* kal will accept a parameter `calendar_name`, which should match with the display name of the calendar.
+
+* YAML seems to have more traction than JSON when it comes to configuration that is supposed to be read and edited by humans, hence kal will accept configuration files in yaml as well as json.  (I'm considering to backport yaml support to the legacy calendar-cli as well).
+
+* Since kal may operate at many calendars at one time, I decided to add the keyword "contains" to have one config section refer to multiple other config sections.
+
+Example:
 
 ```yaml
 ---
@@ -210,15 +217,16 @@ private:
   contains: [ 'private-calendar', 'brothel-appointments' ]
 ```
 
-Remember to `chmod og-r ~/.config/calendar.conf` or `chmod 0600 ~/.config/calendar.conf`
-
-### Examples
+Usage example
+-------------
 
 Add a calendar item "testevent" at 2013-10-01:
 
     ./calendar-cli.py --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ calendar add 2013-10-01 testevent
 
 (assumes that `caldav-url`, `caldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
+
+See USAGE.MD for instructions on how to use kal.
 
 Objectives
 ----------
@@ -230,13 +238,5 @@ Objectives
 
 Roadmap
 -------
-Eventually, the issues section in the github will probably be more up-to-date on the upcoming plans for enhancements and bug fixes.
 
-Possibly the next version after 0.12 will be 1.0.  One of the important things there is to refactor the calendar code, the filtering options available for tasks should also be available for the calendar.
-
-Other features that I eventually would like to add:
-
-* Allow pulling out an agenda for several calendars at once (though, with the current design it's so much easier to do it through a bash loop rather than in the python code, so this is postponed for a while)
-* Allow specification of event duration and/or event end time through options
-* Fix easy-to-use symlinks (or alternatively wrapper scripts)
-* Make some nosetests
+See NEXT_LEVEL.md and NEW_CLI.md for the direction the project is heading.
