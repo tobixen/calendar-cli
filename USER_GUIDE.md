@@ -62,7 +62,7 @@ private-calendar:
   caldav_pass: hunter2
   calendar_name: goodgames
 sinuous-deeds:
-  inheritate private-calendar
+  inherits: private-calendar
   calendar_name: badgames
 work:
   contains: [ 'work-calendar', 'work-appointments' ]
@@ -89,7 +89,7 @@ kal add journal --journal-options "Resume from the new years party" 2022-12-31 "
 
 Most often, no options should be given to the command `add` - with the exception if one wants to add things to multiple calendars in one command.
 
-Most of the options given after the subcommand is for populating object properties like location, categories, geo, class, etc.
+Most of the options given after the subcommand are for populating object properties like location, categories, geo, class, etc.
 
 ## Selecting things from the calendar
 
@@ -109,7 +109,7 @@ Some calendar server implementations require  `--todo` or `--event` to always be
 
 Events can either be output as ics, or through a template.
 
-The templating engine is built on top of the python `string.format()`.  To learn the basics of `string.format()`, w3schools have some nice interactive thing on the web, https://www.w3schools.com/python/ref_string_format.asp
+The templating engine is built on top of the python `string.format()`.  To learn the basics of `string.format()`, w3schools has some nice interactive thing on the web, https://www.w3schools.com/python/ref_string_format.asp
 
 Text fields can be accessed directly i.e. like this:
 
