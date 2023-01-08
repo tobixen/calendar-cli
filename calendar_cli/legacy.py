@@ -632,9 +632,15 @@ def todo_list(caldav_conn, args):
             for summary_attr in ('summary', 'location', 'description', 'url', 'uid'):
                 if hasattr(task.instance.vtodo, summary_attr):
                     t['summary'] = getattr(task.instance.vtodo, summary_attr).value
+                    t['summary'] = to_normal_str(t['summary'])
                     break
+            for attr in ('location', 'description', 'url'):
+                if hasattr(task.instance.vtodo, attr):
+                    t[attr] = getattr(task.instance.vtodo, attr).value
+                else:
+                    t[attr] = ""
+                t[attr] = to_normal_str(t[attr])
             t['uid'] = task.instance.vtodo.uid.value
-            t['summary'] = to_normal_str(t['summary'])
             print(args.todo_template.format(**t))
 
 def todo_complete(caldav_conn, args):
