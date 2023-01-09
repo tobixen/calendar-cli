@@ -1,7 +1,7 @@
 calendar-cli
 ============
 
-Simple command-line CalDav client, making it possible to add calendar events, browse an agenda and doing task management towards a caldav server.
+Simple command-line CalDav client, making it possible to add calendar events, browse an agenda and do task management using a caldav server.
 
 THIS IS THE LEGACY VERSION.  I got a bit unhappy with the project (particularly the quite different user interfaces when handling events vs handling tasks), so rather than making version 1.0, I decided to recreate it from scratch.  Please visit https://github.com/tobixen/kal for the new version (though be aware that it still has some sharp edges).
 
@@ -10,7 +10,7 @@ Other tools
 
 There is another project out there, "Command-line Interface for Google Calendar", previously located at pypi under the calendar-cli name.  It has now been renamed to gcalendar-cli to avoid name conflict, and is available at https://pypi.python.org/pypi/gcalendar-cli/
 
-There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind calendar-cli is slightly different, calendar-cli is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage, just client-side operations.
+There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind `calendar-cli` is slightly different, `calendar-cli` is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage, just client-side operations.
 
 New vs old interface
 --------------------
@@ -19,12 +19,10 @@ DO YOU HAVE OPINIONS ON WHAT COLOR TO PAINT THE BIKE SHED WITH?  VISIT https://g
 
 calendar-cli.py is the old interface, it will hang around and be supported for some time to come.  cal.py is the new interface, but until version 1.0 is ready, there will still be functionality in calendar-cli that isn't mirrored to cal.py.
 
-I wanted a short and easy command name, since `cal(1)` is already a popular Unix command, I'm considering to install it into /usr/bin with the name `kal`, but I'm a bit uncertain (seems either like a bad typo or an attempt on localizing the command into my native language?)
-
 Usage examples
 --------------
 
-The commands and options will be described further down, however examples often beats documentation.
+The commands and options will be described further down, however examples often beat documentation.
 
 First, check the tests folder - the file tests.sh shows some basic usage examples.  If you have radicale installed (`sudo pip install radicale`), you can try executing test_calendar-cli.sh in the test folder, it basically sets up a temporary radicale server and executes the tests.sh towards that server.  If test_calendar-cli.sh breaks then _please_ raise an issue on the github or try to reach out through other channels.
 
@@ -33,9 +31,9 @@ In the examples folder there is a script I was using on a regular basis for task
 Installation
 ------------
 
-calendar-cli depends on quite some python libraries, i.e. pytz, caldav, etc.  "sudo ./setup.py install" should take care of all those eventually.
+`calendar-cli` depends on quite some python libraries, i.e. pytz, caldav, etc.  "sudo ./setup.py install" should take care of all those eventually.
 
-The calendar-cli executable can be executed as it is, or copied to /usr/bin.  Make sure to copy the content - as of v0.12, calendar-cli is actually a symlink to calendar_cli.py.  This mess will be fixed up in v1.0.
+The `calendar-cli` executable can be executed as it is, or copied to /usr/bin.  Make sure to copy the content - as of v0.12, `calendar-cli` is actually a symlink to calendar_cli.py.  This mess will be fixed up in v1.0.
 
 Support
 -------
@@ -52,7 +50,7 @@ GUIs and Web-UIs are nice for some purposes, but I really find the command line 
 * Minor stuff that is repeated often.  Writing something like "todo add make a calendar-cli system" or "calendar add 'tomorrow 15:40+2h' doctor appointment" is (for me) faster than navigating into some web calendar interface and add an item there.
 * Things that are outside the scope of the UI.  Here is one of many tasks I'd like to do: "go through the work calendar, find all new calendar events that are outside office hours, check up with the personal calendar if there are potential conflicts, add some information at the personal calendar if appropriate", and vice versa - it has to be handled very manually if doing it through any normal calendar application as far as I know, but if having some simple CLI or python library I could easily make some interactive script that would help me doing the operation above.
 
-When I started writing calendar-cli, all I could find was cadaver and the CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation, and there are things that simply cannot be done through those tools.
+When I started writing `calendar-cli`, all I could find was cadaver and the CalDAVClientLibrary.  Both of those seems to be a bit shortcoming; they seem to miss the iCalendar parsing/generation, and there are things that simply cannot be done through those tools.
 
 Synopsis
 --------
@@ -103,7 +101,7 @@ Supported in v0.12:
 * An iso time stamp, followed with the duration, using either + or space as separator.  Duration is a number postfixed by s for seconds, m for minutes, h for hours, d for days, w for weeks and y for years (i.e. 2013-09-10T13:37+30d)
 * ISO dates.  For full day events, make sure to specify the duration in days.
 
-All of those would eventually be supported in future versions if it's not too difficult to achieve:
+All of these would eventually be supported in future versions if it's not too difficult to achieve:
 
 * Two ISO timestamps separated by a dash (-)
 * "tomorrow" instead of an ISO date
@@ -129,7 +127,7 @@ The file TASK_MANAGEMENT.md contains some thoughts on how to organize tasks.
 Configuration file
 ------------------
 
-Configuration file is by default located in $HOME/.config/calendar.conf.  calendar-cli expects it to be in json syntax, while kal supports both json and yaml.  You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
+Configuration file is by default located in $HOME/.config/calendar.conf. You may run `calendar-cli --interactive-config` if you don't feel comfortable with hand-crafting configuration in json syntax, though this feature is not tested regularly.
 
 (I considered .ini, but I was told that it's actually not a standard.  I'd like any calendar application to be able to access the file, hence calendar.conf and not calendar-cli.conf)
 
@@ -183,42 +181,6 @@ Sections may also include calendar urls or ids, and sections may inherit other s
   }
 ```
 
-### kal
-
-Anything that goes for calendar-cli will work for kal as well, but there are three improvements in kal:
-
-* kal will accept a parameter `calendar_name`, which should match with the display name of the calendar.
-
-* YAML seems to have more traction than JSON when it comes to configuration that is supposed to be read and edited by humans, hence kal will accept configuration files in yaml as well as json.  (I'm considering to backport yaml support to the legacy calendar-cli as well).
-
-* Since kal may operate at many calendars at one time, I decided to add the keyword "contains" to have one config section refer to multiple other config sections.
-
-Example:
-
-```yaml
----
-work-calendar:
-  caldav_url: "http://acme.example.com/caldav/"
-  caldav_user: drjekyll
-  caldav_pass: pencilin
-  calendar_url: mycalendar
-work-appointments:
-  inherits: work-calendar
-  calendar_url: mypatients
-private-calendar:
-  caldav_url: "https://ecloud.global/remote.php/dav/"
-  caldav_user: mrhyde
-  caldav_pass: hunter2
-  calendar_name: goodgames
-brothel-appointments:
-  inherits: private-calendar
-  calendar_name: badgames
-work:
-  contains: [ 'work-calendar', 'work-appointments' ]
-private:
-  contains: [ 'private-calendar', 'brothel-appointments' ]
-```
-
 Usage example
 -------------
 
@@ -227,8 +189,6 @@ Add a calendar item "testevent" at 2013-10-01:
     ./calendar-cli.py --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ calendar add 2013-10-01 testevent
 
 (assumes that `caldav-url`, `caldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
-
-See USAGE.MD for instructions on how to use kal.
 
 Objectives
 ----------
@@ -241,4 +201,4 @@ Objectives
 Roadmap
 -------
 
-See NEXT_LEVEL.md and NEW_CLI.md for the direction the project is heading.
+See https://github.com/tobixen/kal for the direction the project is heading.
