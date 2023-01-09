@@ -1,7 +1,7 @@
 calendar-cli
 ============
 
-Simple command-line CalDav client, making it possible to add calendar events, browse an agenda and do task management using a caldav server.
+Simple command-line CalDAV client, making it possible to add calendar events, browse an agenda and do task management using a caldav server.
 
 THIS IS THE LEGACY VERSION.  I got a bit unhappy with the project (particularly the quite different user interfaces when handling events vs handling tasks), so rather than making version 1.0, I decided to recreate it from scratch.  Please visit https://github.com/tobixen/kal for the new version (though be aware that it still has some sharp edges).
 
@@ -31,9 +31,7 @@ In the examples folder there is a script I was using on a regular basis for task
 Installation
 ------------
 
-`calendar-cli` depends on quite some python libraries, i.e. pytz, caldav, etc.  "sudo ./setup.py install" should take care of all those eventually.
-
-The `calendar-cli` executable can be executed as it is, or copied to /usr/bin.  Make sure to copy the content - as of v0.12, `calendar-cli` is actually a symlink to calendar_cli.py.  This mess will be fixed up in v1.0.
+`calendar-cli` depends on quite some python libraries, i.e. pytz, caldav, etc.  "sudo ./setup.py install" should take care of all those eventually, and will also make an executable under /usr/bin
 
 Support
 -------
