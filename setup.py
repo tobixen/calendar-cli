@@ -27,7 +27,6 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: CGI Tools/Libraries",
     ],
     scripts=['bin/calendar-cli.py', 'bin/calendar-cli'],
-    py_modules=['cal'],
     install_requires=[
         'icalendar',
         'caldav>=0.12-dev0',
@@ -37,10 +36,5 @@ setup(
         'Click',
         'six'
     ],
-    entry_points={
-        'console_scripts': [
-            'kal = calendar_cli.cal:cli',
-        ],
-    },
    **metadata_
 )
