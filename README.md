@@ -201,4 +201,4 @@ Objectives
 Roadmap
 -------
 
-See https://github.com/tobixen/kal for the direction the project is heading.
+See https://github.com/tobixen/plann for the direction the project is heading.
