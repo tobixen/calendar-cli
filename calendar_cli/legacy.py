@@ -3,7 +3,7 @@
 """
 https://github.com/tobixen/calendar-cli/ - high-level cli against caldav servers.
 
-This is the legacy calendar-cli.  A new interface is being built in cal.py - aka kal
+This is the legacy calendar-cli.  A new interface is being built in cal.py - aka plann
 Feedback/wishes/discussions on the new cli can be held at
 https://github.com/tobixen/calendar-cli/issues/88
 
@@ -697,7 +697,7 @@ def main():
     the main function does (almost) nothing but parsing command line parameters
     """
 #    sys.stderr.write("""
-#The calendar-cli command is slowly being deprecated in favor of kal
+#The calendar-cli command is slowly being deprecated in favor of plann
 #Check https://github.com/tobixen/calendar-cli/issues/88
 #""")
             
