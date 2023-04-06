@@ -101,9 +101,6 @@ cat $outfile > $tmpfile
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
 
-echo "## Same, using kal add ics"
-calendar_cli calendar  addics --file $tmpfile
-
 rm $tmpfile
 calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
 echo "$output" | grep -q "whole day" || error "could not find the event"

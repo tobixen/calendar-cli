@@ -3,7 +3,7 @@ calendar-cli
 
 Simple command-line CalDAV client, making it possible to add calendar events, browse an agenda and do task management using a caldav server.
 
-THIS IS THE LEGACY VERSION.  I decided to change a bit on the user interface, rather than breaking backward compatibility I made a new command name `plann`.  Please visit https://github.com/tobixen/plann for the new version (though be aware that it still has some sharp edges).
+THIS IS THE LEGACY VERSION.  If you're already using calendar-cli and don't want to change anything, then keep using it.  If you need a production-ready mature command-line utility for accessing your calendar, then this is the right tool ... as for now.  I decided to change a bit on the user interface, rather than breaking backward compatibility I made a new command name `plann`.  I would recommend visit https://github.com/tobixen/plann for the new version.
 
 calendar-cli will be maintained primarily for backward compatibility.  Pull-requests dealing with bugfixes or minor "missing" features will be considered - but for anyone in need of a command-line interface towards a CalDAV calendar server, the recommendation is to use [plann](https://github.com/tobixen/plann) instead.
 
