@@ -13,18 +13,8 @@ error() {
 [ -z "$calendar_cli" ] && [ -x ../calendar-cli.py ] && calendar_cli=../calendar-cli.py
 [ -z "$calendar_cli" ] && error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
 
-[ -z "$kal" ] && [ -x ./cal.py ] && kal=./cal.py
-[ -z "$kal" ] && [ -x ../cal.py ] && kal=../cal.py
-[ -z "$kal" ] && error "couldn't find ./cal.py nor ../cal.py"
-
 calendar_cli() {
     echo "    $calendar_cli $@"
     output=$($calendar_cli "$@" | tee $outfile)
-    [ -z "$output" ] || [ -z "$QUIET" ] || echo $output
-}
-
-kal() {
-    echo "    $kal $@"
-    output=$($kal "$@"  | tee $outfile)
     [ -z "$output" ] || [ -z "$QUIET" ] || echo $output
 }

@@ -94,19 +94,6 @@ echo "$output" | grep -q "20101010" || error "could not find the date"
 echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
 echo "OK: found the event"
 
-## saving the ics data
-tmpfile=$(mktemp)
-cat $outfile > $tmpfile
-
-echo "## cleanup, delete it"
-calendar_cli calendar delete --event-uid=$uid
-
-rm $tmpfile
-calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1
-echo "$output" | grep -q "whole day" || error "could not find the event"
-echo "$output" | grep -q "20101010" || error "could not find the date"
-echo "$output" | grep -q "20101010T" && error "a supposed whole day event was found to be with the time of day"
-echo "OK: found the event"
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
 

@@ -3,7 +3,7 @@
 storage=$(mktemp -d)
 
 echo "This script will attempt to set up a Radicale server and a Xandikos server and run the test code towards those two servers"
-echo "The test code itself is found in tests.sh and tests_kal.sh"
+echo "The test code itself is found in tests.sh"
 
 export RUNTESTSNOPAUSE="foo"
 
@@ -16,7 +16,7 @@ radicale_pid=$(jobs -l | perl -ne '/^\[\d+\]\+\s+(\d+)\s+Running/ && print $1')
 if [ -n "$radicale_pid" ]
 then
     echo "## Radicale now running on pid $radicale_pid"
-    calendar_cli="../calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-pass=password1 --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
+    calendar_cli="../bin/calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-pass=password1 --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     echo "## Creating a calendar"
     $calendar_cli calendar create calendar-cli-test-calendar
     
@@ -56,7 +56,7 @@ fi
 if [ -n "$xandikos_pid" ]
 then
     echo "## Xandikos now running on pid $xandikos_pid"
-    calendar_cli="../calendar-cli --caldav-url=http://localhost:8080/ --caldav-user=user"
+    calendar_cli="../bin/calendar-cli --caldav-url=http://localhost:8080/ --caldav-user=user"
     export calendar_cli
     ./tests.sh
     kill $xandikos_pid

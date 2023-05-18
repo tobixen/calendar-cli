@@ -14,13 +14,6 @@ There is another project out there, "Command-line Interface for Google Calendar"
 
 There is a "competing" project at https://github.com/geier/khal - you may want to check it out - it's more mature but probably more complex.  It's using a "vsyncdir" backend - if I've understood it correctly, that involves building a local copy of the calendar.  The philosophy behind `calendar-cli` is slightly different, `calendar-cli` is supposed to be a simple cli-based caldav+ical client.  No synchronization, no local storage, just client-side operations.
 
-New vs old interface
---------------------
-
-DO YOU HAVE OPINIONS ON WHAT COLOR TO PAINT THE BIKE SHED WITH?  VISIT https://github.com/tobixen/calendar-cli/issues/88 NOW!
-
-calendar-cli.py is the old interface, it will hang around and be supported for some time to come.  cal.py is the new interface, but until version 1.0 is ready, there will still be functionality in calendar-cli that isn't mirrored to cal.py.
-
 Usage examples
 --------------
 
@@ -101,18 +94,9 @@ Supported in v0.12:
 * An iso time stamp, followed with the duration, using either + or space as separator.  Duration is a number postfixed by s for seconds, m for minutes, h for hours, d for days, w for weeks and y for years (i.e. 2013-09-10T13:37+30d)
 * ISO dates.  For full day events, make sure to specify the duration in days.
 
-All of these would eventually be supported in future versions if it's not too difficult to achieve:
-
-* Two ISO timestamps separated by a dash (-)
-* "tomorrow" instead of an ISO date
-* weekday instead of an ISO date (this seems supported already by dateutil.parser.parse)
-* clock time without the date; event will be assumed to start within 24 hours.
-
-Alternatively, endtime or duration can be given through options (not supported as of 0.12)
-
 ### Getting out customized information through --todo-template and --event-template
 
-This is a string containing variables enclosed in curly braces, like "uid: {uid}".  Full documentation of the available variables will be given in version 1.0.
+This is a string containing variables enclosed in curly braces, like "uid: {uid}".
 
 Particularly the uid can be useful, as one may want to use the uid for things like deleting events and postponing tasks.
 
