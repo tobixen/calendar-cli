@@ -185,4 +185,6 @@ Objectives
 Roadmap
 -------
 
-See https://github.com/tobixen/plann for the direction the project is heading.
+calendar-cli will be maintained with bugfixes and security fixes, on requests from the community.  The maintainer is no longer using calendar-cli.
+
+A new project https://github.com/tobixen/plann with a new interface has been forked off.
