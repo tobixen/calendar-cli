@@ -698,10 +698,10 @@ def main():
     """
     the main function does (almost) nothing but parsing command line parameters
     """
-#    sys.stderr.write("""
-#The calendar-cli command is slowly being deprecated in favor of plann
-#Check https://github.com/tobixen/calendar-cli/issues/88
-#""")
+    #    sys.stderr.write("""
+    #The calendar-cli command is slowly being deprecated in favor of plann
+    #Check https://github.com/tobixen/calendar-cli/issues/88
+    #""")
 
     ## This boilerplate pattern is from
     ## http://stackoverflow.com/questions/3609852
@@ -896,11 +896,12 @@ def main():
 
     if not args.nocaldav:
         if not args.calendar_url and not args.caldav_url:
-            sys.stderr.write("""
-missing mandatory arguments ... either calendar_url or caldav_url needs to be set
-Have you set up a config file? Read the doc or ...
-... use the --interactive-config option to create a config file
-""")
+            sys.stderr.write("missing mandatory arguments ... either "
+                              "calendar_url or caldav_url needs to be set\n"
+                              "Have you set up a config file? Read the doc or "
+                              "...\n... use the --interactive-config option to "
+                              "create a config file\n"
+                              )
             sys.exit(1)
         caldav_conn = caldav_connect(args)
     else:
