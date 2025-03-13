@@ -96,9 +96,9 @@ def interactive_config(args, config, remaining_argv):
 def expand_config_section(config, section='default', blacklist=None):
     """
     In the "normal" case, will return [ section ]
-    
+
     We allow:
-    
+
     * * includes all sections in config file
     * "Meta"-sections in the config file with the keyword "contains" followed by a list of section names
     * Recursive "meta"-sections
@@ -126,7 +126,7 @@ def expand_config_section(config, section='default', blacklist=None):
             ## Disabled sections should be ignored
             if config.get('section', {}).get('disable', False):
                 return []
-            
+
             ## NORMAL CASE - return [ section ]
             return [ section ]
     ## section name is a glob pattern

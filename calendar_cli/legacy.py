@@ -111,7 +111,7 @@ def _tz(timezone=None):
         except:
             ## if the tzlocal version is old
             return tzlocal.get_localzone()
-      
+
     elif not hasattr(timezone, 'utcoffset'):
         ## See https://github.com/collective/icalendar/issues/333
         #return zoneinfo.ZoneInfo(timezone)
@@ -216,7 +216,7 @@ def _calendar_addics(caldav_conn, ics, uid, args):
         sys.exit(2)
     """
     Peter Havekes: This needs more checking. It works for me when connecting to O365
-    
+
     except caldav.lib.error.PutError as e:
         if "200 OK" in str(e):
             print("Duplicate")
@@ -298,11 +298,11 @@ def calendar_add(caldav_conn, args):
     if (args.whole_day or
         (event_duration_secs % (60*60*24) == 0 and
          dtstart.time() == time_(0,0))):
-        
+
         ## allowing 1 second off due to leap seconds
         if (event_duration_secs+1) % (60*60*24) > 2:
             raise ValueError('Duration of whole-day event must be multiple of 1d')
-        
+
         duration = event_duration_secs//60//60//24
         dtend = dtstart + timedelta(days=duration)
         event.add('dtstart', _date(dtstart.date()))
@@ -702,7 +702,7 @@ def main():
 #The calendar-cli command is slowly being deprecated in favor of plann
 #Check https://github.com/tobixen/calendar-cli/issues/88
 #""")
-            
+
     ## This boilerplate pattern is from
     ## http://stackoverflow.com/questions/3609852
     ## We want defaults for the command line options to be fetched from the config file
@@ -906,7 +906,7 @@ Have you set up a config file? Read the doc or ...
     else:
 
         caldav_conn = None
-    
+
     if args.ssl_verify_cert == 'no':
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 

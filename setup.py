@@ -31,7 +31,7 @@ setup(
         'icalendar',
         'caldav>=0.12-dev0',
 #        'isodate',
-        'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333 
+        'pytz', ## pytz is supposed to be obsoleted, but see https://github.com/collective/icalendar/issues/333
         'pyyaml',
         'tzlocal',
         'Click',

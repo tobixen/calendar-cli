@@ -97,7 +97,7 @@ echo "OK: found the event"
 echo "## cleanup, delete it"
 calendar_cli calendar delete --event-uid=$uid
 
-## TODO - procrastinated, waiting for response on https://github.com/dateutil/dateutil/issues/1184 
+## TODO - procrastinated, waiting for response on https://github.com/dateutil/dateutil/issues/1184
 #uid=$(echo $output | perl -ne '/uid=(.*)$/ && print $1')
 #[ -n "$uid" ] || error "got no UID back"
 #calendar_cli  --icalendar calendar agenda --from-time=2010-10-13 --agenda-days=1

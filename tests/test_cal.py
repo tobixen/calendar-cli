@@ -18,7 +18,7 @@ the caldav library ought to be tested here.  """
 class TestTemplate:
     def setup_method(self):
         self.date = date(1990, 10, 10)
-        
+
     def test_formatting_with_timespec(self):
         template=Template("This is an ISO date: {date:%F}")
         text = template.format(date=self.date)
@@ -26,7 +26,7 @@ class TestTemplate:
 
         text = template.format(foo=self.date)
         assert text == "This is an ISO date: "
-        
+
     def test_formatting_with_simple_default(self):
         template=Template("This is an ISO date: {date:?(date is missing)?%F}")
         text = template.format(date=self.date)

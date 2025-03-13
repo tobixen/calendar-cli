@@ -21,7 +21,7 @@ done | sort
 
 echo -e "\nAnd here is your upcoming calendar tasks:"
 for section in seb house default work-tasks pir-tasks
-do 
+do
     echo $section
     calendar-cli --config-section $section todo $selflags --limit 10 --hide-parent list
 done
@@ -65,7 +65,7 @@ $EDITOR $tempfile
 . $tempfile
 
 ## Set more realistic due-dates on overdue tasks
-calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={uid} postpone --due "in 15d" # {summary}' > $tempfile 
+calendar-cli todo --overdue list --todo-template='calendar-cli todo --todo-uid={uid} postpone --due "in 15d" # {summary}' > $tempfile
 if [ -s $tempfile ]
 then
     echo -e "\nNext up: Look over overdue tasks and consider procrastinating some of them.  Press enter"

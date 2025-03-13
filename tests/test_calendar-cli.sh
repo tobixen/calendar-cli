@@ -19,7 +19,7 @@ then
     calendar_cli="../bin/calendar-cli.py --caldav-url=http://localhost:5232/ --caldav-pass=password1 --caldav-user=testuser --calendar-url=/testuser/calendar-cli-test-calendar"
     echo "## Creating a calendar"
     $calendar_cli calendar create calendar-cli-test-calendar
-    
+
     ## crazy, now I get a 403 forbidden on the calendar create, but
     ## the calendar is created.  Without the statement above, I'll
     ## just get 404 when running tests.
@@ -46,7 +46,7 @@ echo "########################################################################"
 echo "## XANDIKOS"
 echo "########################################################################"
 xandikos_bin=$(which xandikos 2> /dev/null)
-if [ -n "$xandikos_bin" ] 
+if [ -n "$xandikos_bin" ]
 then
     $xandikos_bin --defaults -d $storage &
     sleep 0.5

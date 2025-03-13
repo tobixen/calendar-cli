@@ -30,7 +30,7 @@ class Template(string.Formatter):
 
     def format(self, *pargs, **kwargs):
         return super().format(self.template, *pargs, **kwargs)
-    
+
     def get_value(self, key, args, kwds):
         try:
             return string.Formatter.get_value(self, key, args, kwds)
