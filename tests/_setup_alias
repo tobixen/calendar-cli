@@ -14,7 +14,9 @@ error() {
 [ -z "$calendar_cli" ] && error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
 
 calendar_cli() {
-    echo "    $calendar_cli $@"
+    echo "    $calendar_cli $*"
     output=$($calendar_cli "$@" | tee $outfile)
     [ -z "$output" ] || [ -z "$QUIET" ] || echo $output
 }
+
+# vim: ft=sh

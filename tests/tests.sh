@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -e
 
@@ -6,14 +6,12 @@ set -e
 ## SETUP
 ########################################################################
 
-for path in . .. ./tests ../tests
-do
+for path in . .. ./tests ../tests; do
     setup="$path/_setup_alias"
-    [ -f $setup  ] && source $setup
+    [ -f $setup ] && source $setup
 done
 
-if [ -z "$RUNTESTSNOPAUSE" ]
-then
+if [ -z "$RUNTESTSNOPAUSE" ]; then
     echo "tests.sh"
     echo
     echo "Generally, tests.sh should only be run directly if you know what you are doing"
@@ -28,14 +26,19 @@ then
     echo "Content from 2010-10 may be deleted"
     echo
     echo "Press enter or ctrl-C"
-    read foo
+    read -r
 fi
 
 
 echo "## CLEANUP from earlier failed test runs, if any"
 
-QUIET=true
-for uid in $($calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=5 --event-template='{uid}') ; do calendar_cli calendar delete --event-uid=$uid ; done
+export QUIET=true
+for uid in $(
+    $calendar_cli calendar agenda --from-time=2010-10-09 --agenda-days=5 \
+        --event-template='{uid}')
+do
+  calendar_cli calendar delete --event-uid="$uid"
+done
 calendar_cli todo --categories scripttest delete
 unset QUIET
 
