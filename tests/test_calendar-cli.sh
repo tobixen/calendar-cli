@@ -12,7 +12,9 @@ export RUNTESTSNOPAUSE="foo"
 echo "########################################################################"
 echo "## RADICALE"
 echo "########################################################################"
-$PYTHON3 -m radicale --storage-filesystem-folder="$storage" &
+sh -c "$PYTHON3 -m radicale --storage-filesystem-folder='$storage' \
+    ${DAEMONS_OUTPUT_TO_FILES:+>$storage/radicale.stdout} \
+    ${DAEMONS_OUTPUT_TO_FILES:+2>$storage/radicale.stderr}" &
 radicale_pid=$!
 sleep 0.3
 if [ -n "$radicale_pid" ]; then
@@ -48,7 +50,9 @@ echo "## XANDIKOS"
 echo "########################################################################"
 xandikos_bin=$(which xandikos 2> /dev/null)
 if [ -n "$xandikos_bin" ]; then
-    $xandikos_bin --defaults -d "$storage" &
+    sh -c "$xandikos_bin --defaults -d '$storage' \
+        ${DAEMONS_OUTPUT_TO_FILES:+>$storage/xandikos.stdout} \
+        ${DAEMONS_OUTPUT_TO_FILES:+2>$storage/xandikos.stderr}" &
     xandikos_pid=$!
     sleep 0.5
 fi
