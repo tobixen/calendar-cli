@@ -1,5 +1,7 @@
-set -o pipefail
-outfile=$(mktemp)
+test_init() {
+    set -o pipefail
+    __test_outfile=$(mktemp)
+}
 
 error() {
     echo "FAILURE"
@@ -9,14 +11,31 @@ error() {
     exit 255
 }
 
-[ -z "$calendar_cli" ] && [ -x ./calendar-cli.py ] && calendar_cli=./calendar-cli.py
-[ -z "$calendar_cli" ] && [ -x ../calendar-cli.py ] && calendar_cli=../calendar-cli.py
-[ -z "$calendar_cli" ] && error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
+find_executable_to_test() {
+    local candidate
 
-calendar_cli() {
-    echo "    $calendar_cli $*"
-    output=$($calendar_cli "$@" | tee $outfile)
-    [ -z "$output" ] || [ -z "$QUIET" ] || echo $output
+    for candidate in \
+        './calendar-cli.py' \
+        '../calendar-cli.py' \
+        './bin/calendar-cli.py'
+    do
+        if [ -x "$candidate" ]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+
+    error "couldn't find ./calendar_cli.py nor ../calendar_cli.py"
 }
 
-# vim: ft=sh
+set_test_command() {
+    __test_cmd_with_args="$*"
+}
+
+calendar_cli() {
+    echo "    $__test_cmd_with_args $*"
+    __test_output=$($__test_cmd_with_args "$@" | tee $outfile)
+    [ -z "$__test_output" ] || [ -z "$QUIET" ] || echo $__test_output
+}
+
+# vim: ft=bash

@@ -25,12 +25,11 @@ if [ -n "$radicale_pid" ]; then
     ## crazy, now I get a 403 forbidden on the calendar create, but
     ## the calendar is created.  Without the statement above, I'll
     ## just get 404 when running tests.
-    export calendar_cli
     if [ -n "$DEBUG" ]; then
         echo "press enter to run tests"
         read -r
     fi
-    ./tests.sh
+    ./tests.sh "$calendar_cli"
     if [ -n "$DEBUG" ]; then
         echo "press enter to take down test server"
         read -r
@@ -55,8 +54,8 @@ fi
 if [ -n "$xandikos_pid" ]; then
     echo "## Xandikos now running on pid $xandikos_pid"
     calendar_cli="../bin/calendar-cli --caldav-url=http://localhost:8080/ --caldav-user=user"
-    export calendar_cli
-    ./tests.sh
+
+    ./tests.sh "$calendar_cli"
     kill "$xandikos_pid"
 else
     echo "## Could not start up xandikos (is it installed?).  Will skip running tests towards xandikos"
