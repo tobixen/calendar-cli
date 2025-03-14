@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+[ "$PYTHON3" ] || PYTHON3='python3'
+
 storage=$(mktemp -d)
 
 echo "This script will attempt to set up a Radicale server and a Xandikos server and run the test code towards those two servers"
@@ -10,7 +12,7 @@ export RUNTESTSNOPAUSE="foo"
 echo "########################################################################"
 echo "## RADICALE"
 echo "########################################################################"
-python3 -m radicale --storage-filesystem-folder="$storage" &
+$PYTHON3 -m radicale --storage-filesystem-folder="$storage" &
 radicale_pid=$!
 sleep 0.3
 if [ -n "$radicale_pid" ]; then
