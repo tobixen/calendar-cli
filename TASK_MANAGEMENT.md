@@ -80,7 +80,7 @@ From a "user perspective", I think there are two kind of recurrences:
 * Specified intervals - say, the floor should be cleaned every week.  You usually do it every Monday, but one week everything is so hectic that you postpone it all until late Sunday evening.  It would be irrational to wash it again the next day.  And if you missed the due date with more than a week - then obviously the next recurrence is not "previous week".  (Except, one may argue that the status of previous week should be set to "CANCELLED")
 * Fixed-time.  If you actually get paid for washing the floor and you have a contract stating that you get paid a weekly sum for washing the floor weekly, then you'd probably want to wash the floor again on Monday, even if it has been done just recently.  Or perhaps one of the children is having swimming at school every Tuesday, so sometime during Monday (with a hard due set to Tuesday early morning) a gym bag with swimwear and a fresh towel should be prepared for the child.  Or the yearly income tax statement, should be delivered before a hard due date.
 
-I choose to interpret a RRULE with BY*-attributes set (like BYDAY=MO) as a recurring task with "fixed" due times, while a RRULE without BY*-attributes should be considered as a "interval"-style of recurring task.
+I choose to interpret a RRULE with BY\*-attributes set (like BYDAY=MO) as a recurring task with "fixed" due times, while a RRULE without BY\*-attributes should be considered as a "interval"-style of recurring task.
 
 There can be only one status and one complete-date for a vtodo, no matter if it's recurring or not.
 
@@ -114,12 +114,12 @@ The RFC defines priority as a number between 0 and 10.
 
 Should tasks be done in the order of their priority?  Probably not, as there is also the DUE-date to consider.  I do have some ideas on how to sort and organize tasks in the [NEXT_LEVEL](NEXT_LEVEL.md) document.  To follow the thoughts there, let priority be defined as such:
 
-1: The DUE timestamp MUST be met, come hell or high water.
-2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.
-3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.
-4: The deadline SHOULD NOT be pushed too much
-5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.
-6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.
+1: The DUE timestamp MUST be met, come hell or high water.  
+2: The DUE timestamp SHOULD be met, if we lose it the task becomes irrelevant.  
+3: The DUE timestamp SHOULD be met, but worst case we can probably procrastinate it, perhaps we can apply for an extended deadline.  
+4: The deadline SHOULD NOT be pushed too much  
+5: If the deadline approaches and we have higher-priority tasks that needs to be done, then this task can be procrastinated.  
+6: The DUE is advisory only and expected to be pushed - but it would be nice if the task gets done within reasonable time.  
 7-9: Low-priority task, it would be nice if the task gets done at all ... but the DUE is overly optimistic and expected to be pushed several times.
 
 Recommendation: split ut tasks

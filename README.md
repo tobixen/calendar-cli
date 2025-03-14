@@ -48,7 +48,10 @@ When I started writing `calendar-cli`, all I could find was cadaver and the CalD
 Synopsis
 --------
 
-    calendar-cli.py [global options] [command] [command options] [subcommand] [subcommand options] [subcommand arguments] ...
+```sh
+calendar-cli.py [global options] [command] [command options] [subcommand] \
+    [subcommand options] [subcommand arguments] ...
+```
 
 I'm intending to make it easier by allowing calendar-cli.py to be symlinked to the various commands and also to allow the options to be placed wherever.
 
@@ -170,7 +173,11 @@ Usage example
 
 Add a calendar item "testevent" at 2013-10-01:
 
-    ./calendar-cli.py --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ calendar add 2013-10-01 testevent
+```sh
+./calendar-cli.py \
+    --calendar-url=http://calendar.bekkenstenveien53c.oslo.no/caldav.php/tobias/calendar/ \
+    calendar add 2013-10-01 testevent
+```
 
 (assumes that `caldav-url`, `caldav-pass` and `caldav-user` has been added into configuration file.  Those may also be added as command line options)
 
