@@ -19,7 +19,7 @@ radicale_pid=$!
 sleep 0.3
 if [ -n "$radicale_pid" ]; then
     echo "## Radicale now running on pid $radicale_pid"
-    calendar_cli="$( printf "%s%s%s%s" '../bin/calendar-cli.py ' \
+    calendar_cli="env PYTHONPATH=..:$PYTHONPATH $( printf "%s%s%s%s" '../bin/calendar-cli.py ' \
         '--caldav-url=http://localhost:5232/ --caldav-pass=password1 ' \
         '--caldav-user=testuser ' \
         '--calendar-url=/testuser/calendar-cli-test-calendar' )"
